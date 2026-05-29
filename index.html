@@ -1,0 +1,2478 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Studio Thayna</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+<style>
+  :root {
+    --rosa: #c8697a;
+    --rosa-light: #f7e8eb;
+    --rosa-dark: #a04f5e;
+    --dourado: #c9a96e;
+    --dourado-light: #fdf6ec;
+    --verde: #4a9e7c;
+    --verde-light: #e8f5ef;
+    --cinza: #6b6b6b;
+    --cinza-light: #f5f5f5;
+    --cinza-borda: #e0e0e0;
+    --branco: #ffffff;
+    --texto: #2c2c2c;
+    --texto-sec: #888;
+    --sombra: 0 2px 12px rgba(0,0,0,0.08);
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'DM Sans', sans-serif; background: #f8f4f5; color: var(--texto); min-height: 100vh; }
+
+  /* HEADER */
+  .header { background: var(--branco); border-bottom: 1px solid var(--cinza-borda); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .header-logo { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--rosa); letter-spacing: 0.5px; }
+  .header-sub { font-size: 11px; color: var(--texto-sec); margin-top: 1px; }
+  .header-right { display: flex; gap: 8px; }
+
+  /* NAV BOTTOM */
+  .nav-bottom { position: fixed; bottom: 0; left: 0; right: 0; background: var(--branco); border-top: 1px solid var(--cinza-borda); display: flex; z-index: 100; padding-bottom: env(safe-area-inset-bottom); }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 8px 2px 6px; cursor: pointer; transition: color 0.2s; color: var(--texto-sec); font-size: 9px; gap: 3px; border: none; background: none; }
+  .nav-item.active { color: var(--rosa); }
+  .nav-item svg { width: 22px; height: 22px; }
+
+  /* MAIN */
+  .main { padding: 16px 16px 90px; max-width: 480px; margin: 0 auto; }
+
+  /* TELA */
+  .tela { display: none; }
+  .tela.ativa { display: block; }
+
+  /* CARDS */
+  .card { background: var(--branco); border-radius: var(--radius); box-shadow: var(--sombra); padding: 16px; margin-bottom: 12px; }
+  .card-titulo { font-family: 'Playfair Display', serif; font-size: 16px; margin-bottom: 12px; color: var(--texto); }
+
+  /* RESUMO FINANCEIRO */
+  .resumo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .resumo-item { background: var(--branco); border-radius: var(--radius-sm); padding: 14px; border: 1px solid var(--cinza-borda); }
+  .resumo-item.destaque { background: var(--rosa-light); border-color: var(--rosa); }
+  .resumo-label { font-size: 11px; color: var(--texto-sec); margin-bottom: 4px; }
+  .resumo-valor { font-size: 20px; font-weight: 500; color: var(--texto); }
+  .resumo-item.destaque .resumo-valor { color: var(--rosa-dark); }
+
+  /* BOTÕES */
+  .btn { padding: 12px 20px; border-radius: var(--radius-sm); border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+  .btn-primary { background: var(--rosa); color: white; width: 100%; justify-content: center; }
+  .btn-primary:active { background: var(--rosa-dark); transform: scale(0.98); }
+  .btn-outline { background: transparent; border: 1px solid var(--cinza-borda); color: var(--texto); }
+  .btn-outline:active { background: var(--cinza-light); }
+  .btn-sm { padding: 8px 14px; font-size: 13px; }
+  .btn-danger { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+  .btn-success { background: var(--verde-light); color: var(--verde); border: 1px solid #b7e5d0; }
+  .btn-fab { position: fixed; bottom: 80px; right: 20px; width: 52px; height: 52px; border-radius: 50%; background: var(--rosa); color: white; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 4px 16px rgba(200,105,122,0.4); display: flex; align-items: center; justify-content: center; z-index: 90; }
+
+  /* LISTA ITENS */
+  .lista-item { display: flex; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--cinza-borda); gap: 12px; cursor: pointer; }
+  .lista-item:last-child { border-bottom: none; }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--rosa-light); display: flex; align-items: center; justify-content: center; font-weight: 500; font-size: 15px; color: var(--rosa); flex-shrink: 0; }
+  .lista-info { flex: 1; min-width: 0; }
+  .lista-nome { font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lista-sub { font-size: 12px; color: var(--texto-sec); margin-top: 2px; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+  .badge-pago { background: var(--verde-light); color: var(--verde); }
+  .badge-sinal { background: var(--dourado-light); color: #a07830; }
+  .badge-pendente { background: #fee2e2; color: #dc2626; }
+
+  /* MODAL */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: flex-end; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+  .modal-overlay.aberto { opacity: 1; pointer-events: all; }
+  .modal { background: var(--branco); border-radius: 20px 20px 0 0; padding: 24px 20px; width: 100%; max-height: 92vh; overflow-y: auto; transform: translateY(100%); transition: transform 0.3s ease; }
+  .modal-overlay.aberto .modal { transform: translateY(0); }
+  .modal-titulo { font-family: 'Playfair Display', serif; font-size: 20px; margin-bottom: 20px; }
+  .modal-handle { width: 40px; height: 4px; background: var(--cinza-borda); border-radius: 2px; margin: 0 auto 20px; }
+
+  /* FORM */
+  .form-grupo { margin-bottom: 16px; }
+  .form-label { font-size: 12px; color: var(--texto-sec); margin-bottom: 6px; display: block; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+  .form-input { width: 100%; padding: 12px 14px; border: 1px solid var(--cinza-borda); border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 15px; color: var(--texto); background: var(--branco); transition: border-color 0.2s; }
+  .form-input:focus { outline: none; border-color: var(--rosa); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  select.form-input { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+
+  /* AGENDA */
+  .agenda-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .agenda-mes { font-family: 'Playfair Display', serif; font-size: 18px; }
+  .agenda-nav { display: flex; gap: 8px; }
+  .agenda-nav button { background: none; border: 1px solid var(--cinza-borda); border-radius: var(--radius-sm); padding: 6px 12px; cursor: pointer; color: var(--texto); font-size: 18px; }
+  .dias-semana { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; margin-bottom: 8px; }
+  .dia-semana-label { font-size: 11px; color: var(--texto-sec); font-weight: 500; padding: 4px 0; }
+  .calendario { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .dia-cel { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; font-size: 14px; position: relative; }
+  .dia-cel:hover { background: var(--rosa-light); }
+  .dia-cel.hoje { background: var(--rosa); color: white; font-weight: 500; }
+  .dia-cel.tem-evento::after { content: ''; position: absolute; bottom: 3px; width: 4px; height: 4px; border-radius: 50%; background: var(--rosa); }
+  .dia-cel.hoje.tem-evento::after { background: white; }
+  .dia-cel.outro-mes { color: var(--cinza-borda); }
+  .dia-cel.selecionado { background: var(--rosa-light); border: 2px solid var(--rosa); color: var(--rosa); font-weight: 500; }
+  .evento-item { padding: 12px; background: var(--rosa-light); border-left: 3px solid var(--rosa); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin-bottom: 8px; cursor: pointer; }
+  .evento-hora { font-size: 12px; color: var(--rosa); font-weight: 500; }
+  .evento-nome { font-size: 14px; font-weight: 500; margin-top: 2px; }
+  .evento-local { font-size: 12px; color: var(--texto-sec); margin-top: 2px; }
+  .google-btn { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border: 1px solid var(--cinza-borda); border-radius: var(--radius-sm); background: white; cursor: pointer; width: 100%; font-size: 14px; margin-bottom: 16px; }
+
+  /* EVENTO DETALHE */
+  .atendimento-row { background: var(--cinza-light); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 8px; }
+  .atendimento-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .atendimento-cliente { font-weight: 500; font-size: 15px; }
+  .atendimento-valor { font-size: 15px; color: var(--verde); font-weight: 500; }
+  .atendimento-sub { font-size: 12px; color: var(--texto-sec); }
+  .pagamento-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--cinza-borda); }
+  .pagamento-row:last-child { border-bottom: none; }
+
+  /* COMISSÃO */
+  .comissao-card { background: var(--branco); border: 1px solid var(--cinza-borda); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+  .comissao-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+  .pix-box { background: var(--cinza-light); border-radius: var(--radius-sm); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+  .pix-chave { font-size: 13px; color: var(--texto-sec); word-break: break-all; flex: 1; margin-right: 10px; }
+  .btn-copiar { background: var(--rosa); color: white; border: none; padding: 6px 12px; border-radius: var(--radius-sm); font-size: 12px; cursor: pointer; white-space: nowrap; }
+
+  /* TOAST */
+  .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-80px); background: var(--texto); color: white; padding: 12px 20px; border-radius: 30px; font-size: 14px; z-index: 999; transition: transform 0.3s; white-space: nowrap; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* TABS */
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 2px; }
+  .tab { padding: 8px 16px; border-radius: 20px; font-size: 13px; border: 1px solid var(--cinza-borda); background: white; cursor: pointer; white-space: nowrap; }
+  .tab.ativo { background: var(--rosa); color: white; border-color: var(--rosa); }
+
+  /* SEÇÃO TÍTULO */
+  .secao-titulo { font-family: 'Playfair Display', serif; font-size: 22px; margin-bottom: 4px; }
+  .secao-sub { font-size: 13px; color: var(--texto-sec); margin-bottom: 20px; }
+
+  /* FINANCEIRO */
+  .grafico-barra { margin: 8px 0; }
+  .barra-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--texto-sec); margin-bottom: 4px; }
+  .barra-bg { background: var(--cinza-borda); border-radius: 4px; height: 8px; overflow: hidden; }
+  .barra-fill { height: 100%; border-radius: 4px; background: var(--rosa); transition: width 0.8s ease; }
+  .barra-fill.verde { background: var(--verde); }
+  .barra-fill.dourado { background: var(--dourado); }
+
+  /* CHIP */
+  .chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: var(--rosa-light); color: var(--rosa); border-radius: 20px; font-size: 12px; margin: 3px; }
+  .chip-remove { cursor: pointer; font-size: 14px; line-height: 1; }
+
+  /* SUGESTÃO */
+  .sugestao-badge { background: var(--dourado-light); color: #a07830; border: 1px dashed var(--dourado); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 12px; margin-bottom: 8px; }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--texto-sec); }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-text { font-size: 15px; margin-bottom: 16px; }
+
+  .separador { border: none; border-top: 1px solid var(--cinza-borda); margin: 16px 0; }
+
+  .status-bar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-logo">Studio Thayna</div>
+    <div class="header-sub">Gestão profissional</div>
+  </div>
+  <div class="header-right" id="google-status">
+    <button class="btn btn-outline btn-sm" onclick="iniciarGoogleAuth()" id="btn-google-connect">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      Conectar Google
+    </button>
+    <button class="btn btn-outline btn-sm" id="btn-sync" onclick="sincronizarGoogle()" style="display:none;" title="Sincronizar">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Sincronizar
+    </button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- AGENDA -->
+  <div class="tela ativa" id="tela-agenda">
+    <div class="card">
+      <div class="agenda-header">
+        <div class="agenda-mes" id="agenda-mes-titulo">Março 2026</div>
+        <div class="agenda-nav">
+          <button onclick="mudarMes(-1)">‹</button>
+          <button onclick="mudarMes(1)">›</button>
+        </div>
+      </div>
+      <div class="dias-semana">
+        <div class="dia-semana-label">D</div><div class="dia-semana-label">S</div>
+        <div class="dia-semana-label">T</div><div class="dia-semana-label">Q</div>
+        <div class="dia-semana-label">Q</div><div class="dia-semana-label">S</div>
+        <div class="dia-semana-label">S</div>
+      </div>
+      <div class="calendario" id="calendario"></div>
+    </div>
+    <div id="eventos-dia">
+      <div class="empty-state">
+        <div class="empty-icon">📅</div>
+        <div class="empty-text">Selecione um dia para ver os eventos</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EVENTOS -->
+  <div class="tela" id="tela-eventos">
+    <div class="secao-titulo">Eventos</div>
+    <div class="secao-sub">Gerencie seus atendimentos</div>
+    <div class="tabs">
+      <div class="tab ativo" onclick="filtrarEventos('todos', this)">Todos</div>
+      <div class="tab" onclick="filtrarEventos('pendente', this)">Pendentes</div>
+      <div class="tab" onclick="filtrarEventos('confirmado', this)">Confirmados</div>
+      <div class="tab" onclick="filtrarEventos('concluido', this)">Concluídos</div>
+    </div>
+    <div id="lista-eventos"></div>
+  </div>
+
+  <!-- SERVIÇOS -->
+  <div class="tela" id="tela-servicos">
+    <div class="secao-titulo">Serviços</div>
+    <div class="secao-sub">Serviços disponíveis para atendimento</div>
+    <div id="lista-servicos"></div>
+  </div>
+
+  <!-- COLABORADORAS -->
+  <div class="tela" id="tela-colaboradoras">
+    <div class="secao-titulo">Colaboradoras</div>
+    <div class="secao-sub">Equipe e comissões</div>
+    <div id="lista-colaboradoras"></div>
+  </div>
+
+  <!-- FINANCEIRO -->
+  <div class="tela" id="tela-financeiro">
+    <div class="secao-titulo">Financeiro</div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;">
+      <select class="form-input" id="fin-mes-sel" onchange="renderFinanceiro()" style="flex:1;"></select>
+    </div>
+    <div class="resumo-grid">
+      <div class="resumo-item destaque">
+        <div class="resumo-label">Total recebido</div>
+        <div class="resumo-valor" id="fin-total">R$ 0</div>
+      </div>
+      <div class="resumo-item">
+        <div class="resumo-label">Saldo líquido</div>
+        <div class="resumo-valor" id="fin-liquido">R$ 0</div>
+      </div>
+      <div class="resumo-item">
+        <div class="resumo-label">Comissões</div>
+        <div class="resumo-valor" id="fin-comissoes">R$ 0</div>
+      </div>
+      <div class="resumo-item">
+        <div class="resumo-label">A receber</div>
+        <div class="resumo-valor" id="fin-pendente">R$ 0</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-titulo">Comissões a pagar</div>
+      <div id="comissoes-pendentes"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-titulo">Comissões pagas</div>
+      <div id="comissoes-pagas"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-titulo">Histórico por colaboradora</div>
+      <div id="historico-colaboradoras"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-titulo">Por forma de pagamento</div>
+      <div id="grafico-pagamentos"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- NAV BOTTOM -->
+<nav class="nav-bottom">
+  <button class="nav-item active" onclick="navegar('agenda', this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Agenda
+  </button>
+  <button class="nav-item" onclick="navegar('eventos', this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+    Eventos
+  </button>
+
+  <button class="nav-item" onclick="navegar('servicos', this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+    Serviços
+  </button>
+  <button class="nav-item" onclick="navegar('colaboradoras', this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+    Equipe
+  </button>
+  <button class="nav-item" onclick="navegar('financeiro', this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+    Financeiro
+  </button>
+</nav>
+
+<!-- FAB -->
+<button class="btn-fab" id="fab-btn" onclick="abrirModalPrincipal()">+</button>
+
+<!-- MODAL NOVO EVENTO -->
+<div class="modal-overlay" id="modal-evento">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-titulo" id="modal-evento-titulo">Novo Evento</div>
+    <div class="form-grupo">
+      <label class="form-label">Nome do evento</label>
+      <input class="form-input" id="ev-nome" placeholder="Ex: Casamento Silva">
+    </div>
+    <div class="form-row">
+      <div class="form-grupo">
+        <label class="form-label">Data</label>
+        <input class="form-input" id="ev-data" type="date">
+      </div>
+      <div class="form-grupo">
+        <label class="form-label">Horário</label>
+        <input class="form-input" id="ev-hora" type="time">
+      </div>
+    </div>
+    <div class="form-grupo">
+      <label class="form-label">Local</label>
+      <input class="form-input" id="ev-local" placeholder="Endereço ou online">
+    </div>
+
+    <hr class="separador">
+    <div style="font-weight:500; margin-bottom:12px; font-size:14px;">Colaboradoras do evento</div>
+    <div id="colabs-evento-lista" style="margin-bottom:12px;"></div>
+    <div style="display:flex; gap:8px; margin-bottom:16px;">
+      <select class="form-input" id="colab-sel" style="flex:1;"></select>
+      <button class="btn btn-outline btn-sm" onclick="adicionarColabEvento()">+ Add</button>
+    </div>
+
+    <hr class="separador">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <div style="font-weight:500; font-size:14px;">Clientes do evento</div>
+      <button class="btn btn-outline btn-sm" onclick="adicionarAtendimento()">+ Cliente</button>
+    </div>
+    <div id="atendimentos-form"></div>
+    <div id="duplas-container"></div>
+    <div id="duracao-servicos-container"></div>
+    <button class="btn btn-success" style="width:100%;justify-content:center;margin-top:8px;" onclick="distribuirAutomatico()">✨ Distribuir automaticamente</button>
+
+    <div id="cronograma-container" style="display:none;"></div>
+
+    <hr class="separador">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div>
+        <div style="font-weight:500;font-size:14px;">Cobrar deslocamento</div>
+        <div style="font-size:12px;color:var(--texto-sec);">Receita sem comissão</div>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <input type="checkbox" id="ev-deslocamento-check" onchange="toggleDeslocamento(this.checked)" style="width:18px;height:18px;accent-color:var(--rosa);">
+      </label>
+    </div>
+    <div id="ev-deslocamento-valor-box" style="display:none;" class="form-grupo">
+      <label class="form-label">Valor do deslocamento (R$)</label>
+      <input class="form-input" id="ev-deslocamento-valor" type="number" min="0" step="0.01" placeholder="0,00">
+    </div>
+    <hr class="separador">
+    <button class="btn btn-primary" onclick="salvarEvento()">Salvar Evento</button>
+    <button class="btn btn-outline" style="width:100%; margin-top:8px; justify-content:center;" onclick="fecharModal('modal-evento')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL DETALHE EVENTO -->
+<div class="modal-overlay" id="modal-detalhe-evento">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div id="detalhe-evento-conteudo"></div>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button class="btn btn-outline" style="flex:1;justify-content:center;" onclick="fecharModal('modal-detalhe-evento')">Fechar</button>
+      <button class="btn btn-outline" style="flex:1;justify-content:center;color:var(--rosa);border-color:var(--rosa);" onclick="editarEventoAtual()">✏️ Editar</button>
+      <button class="btn btn-danger btn-sm" style="flex:1;justify-content:center;" onclick="excluirEventoAtual()">🗑 Excluir</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOVO CLIENTE -->
+<div class="modal-overlay" id="modal-cliente">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-titulo">Nova Cliente</div>
+    <div class="form-grupo">
+      <label class="form-label">Nome completo</label>
+      <input class="form-input" id="cl-nome" placeholder="Nome da cliente">
+    </div>
+    <div class="form-grupo">
+      <label class="form-label">Telefone / WhatsApp</label>
+      <input class="form-input" id="cl-tel" type="tel" placeholder="(00) 00000-0000">
+    </div>
+    <div class="form-grupo">
+      <label class="form-label">E-mail</label>
+      <input class="form-input" id="cl-email" type="email" placeholder="email@exemplo.com">
+    </div>
+    <button class="btn btn-primary" onclick="salvarCliente()">Salvar Cliente</button>
+    <button class="btn btn-outline" style="width:100%; margin-top:8px; justify-content:center;" onclick="fecharModal('modal-cliente')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL NOVA COLABORADORA -->
+<div class="modal-overlay" id="modal-colaboradora">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-titulo" id="modal-colab-titulo">Nova Colaboradora</div>
+    <div class="form-grupo">
+      <label class="form-label">Nome completo</label>
+      <input class="form-input" id="colab-nome" placeholder="Nome da colaboradora">
+    </div>
+    <div class="form-grupo">
+      <label class="form-label">Telefone</label>
+      <input class="form-input" id="colab-tel" type="tel" placeholder="(00) 00000-0000">
+    </div>
+    <div class="form-grupo">
+      <label class="form-label">Comissão padrão (%)</label>
+      <input class="form-input" id="colab-comissao" type="number" min="0" max="100" placeholder="Ex: 40">
+    </div>
+    <div class="form-grupo">
+      <label class="form-label">Chave PIX</label>
+      <input class="form-input" id="colab-pix" placeholder="CPF, e-mail, telefone ou chave aleatória">
+    </div>
+    <button class="btn btn-primary" onclick="salvarColaboradora()">Salvar Colaboradora</button>
+    <button class="btn btn-outline" style="width:100%; margin-top:8px; justify-content:center;" onclick="fecharModal('modal-colaboradora')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL SERVIÇO -->
+<div class="modal-overlay" id="modal-servico">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-titulo" id="modal-servico-titulo">Novo Serviço</div>
+    <div class="form-grupo">
+      <label class="form-label">Nome do serviço</label>
+      <input class="form-input" id="srv-nome" placeholder="Ex: Maquiagem Social">
+    </div>
+    <button class="btn btn-primary" onclick="salvarServico()">Salvar Serviço</button>
+    <button class="btn btn-outline" style="width:100%;margin-top:8px;justify-content:center;" onclick="fecharModal('modal-servico')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL SELECIONAR SERVIÇOS DO CLIENTE -->
+<div class="modal-overlay" id="modal-sel-servicos">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-titulo">Selecionar Serviços</div>
+    <div id="sel-servicos-lista"></div>
+    <button class="btn btn-primary" style="margin-top:16px;" onclick="fecharModal('modal-sel-servicos')">Confirmar</button>
+  </div>
+</div>
+
+<!-- MODAL PAGAMENTO -->
+<div class="modal-overlay" id="modal-pagamento">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-titulo" id="modal-pag-titulo">Registrar Pagamento</div>
+    <input type="hidden" id="pag-evento-id">
+    <input type="hidden" id="pag-atend-idx">
+    <div class="form-grupo">
+      <label class="form-label">Tipo</label>
+      <select class="form-input" id="pag-tipo">
+        <option value="sinal">Sinal</option>
+        <option value="restante">Restante</option>
+        <option value="total">Total (à vista)</option>
+      </select>
+    </div>
+    <div class="form-grupo">
+      <label class="form-label">Valor (R$)</label>
+      <input class="form-input" id="pag-valor" type="number" min="0" step="0.01" placeholder="0,00">
+    </div>
+    <div class="form-grupo">
+      <label class="form-label">Forma de pagamento</label>
+      <select class="form-input" id="pag-forma">
+        <option>PIX</option>
+        <option>Cartão de crédito</option>
+        <option>Cartão de débito</option>
+        <option>Dinheiro</option>
+        <option>Transferência</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="salvarPagamento()">Registrar</button>
+    <button class="btn btn-outline" style="width:100%; margin-top:8px; justify-content:center;" onclick="fecharModal('modal-pagamento')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL EDITAR SLOT DO CRONOGRAMA -->
+<div class="modal-overlay" id="modal-slot-cronograma">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-titulo">Editar Atendimento</div>
+    <input type="hidden" id="slot-atend-idx">
+    <input type="hidden" id="slot-sv-idx">
+    <div class="form-grupo">
+      <label class="form-label">Cliente / Serviço</label>
+      <div id="slot-info" style="font-size:14px;font-weight:500;padding:8px 0;color:var(--texto-sec);"></div>
+    </div>
+    <div class="form-grupo">
+      <label class="form-label">Colaboradora</label>
+      <select class="form-input" id="slot-colab-sel"></select>
+    </div>
+    <div class="form-row">
+      <div class="form-grupo">
+        <label class="form-label">Início</label>
+        <input class="form-input" type="time" id="slot-hora-inicio">
+      </div>
+      <div class="form-grupo">
+        <label class="form-label">Fim</label>
+        <input class="form-input" type="time" id="slot-hora-fim">
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="salvarSlotCronograma()">Salvar</button>
+    <button class="btn btn-outline" style="width:100%;margin-top:8px;justify-content:center;" onclick="fecharModal('modal-slot-cronograma')">Cancelar</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-linha-tempo">
+  <div class="modal" style="max-width:95vw;width:720px;">
+    <div class="modal-handle"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div class="modal-titulo" style="margin:0;">📋 Cronograma por cliente</div>
+      <button onclick="fecharModal('modal-linha-tempo')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--texto-sec);">✕</button>
+    </div>
+    <div id="linha-tempo-conteudo" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDB14wONorI379hBiJ-5zs4WPfs3B-nCzI",
+  authDomain: "studio-thayna.firebaseapp.com",
+  projectId: "studio-thayna",
+  storageBucket: "studio-thayna.firebasestorage.app",
+  messagingSenderId: "219805696286",
+  appId: "1:219805696286:web:be3c087a77269ca94a490f"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+const GOOGLE_CLIENT_ID = '1054000419123-63epgfgkac3an09skhiq7tpf3861me4n.apps.googleusercontent.com';
+const GOOGLE_API_KEY = 'AIzaSyDzF35wR7guepU4CtsMLL9WS4BdhHsSzbA';
+const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/calendar';
+
+// STATE
+let state = {
+  telaAtual: 'agenda',
+  mesAtual: new Date(),
+  diaSelecionado: null,
+  googleToken: null,
+  colabsEvento: [],
+  atendimentosEvento: [],
+  duracaoServicosEvento: {},
+  duplasEvento: [],
+  eventoEditandoId: null,
+  colabEditandoId: null,
+  selServicosAtendIdx: null,
+  clientes: [],
+  colaboradoras: [],
+  eventos: [],
+  servicos: [],
+  pagamentosConfirmados: {},
+};
+
+// NAVEGAÇÃO
+function navegar(tela, btn) {
+  document.querySelectorAll('.tela').forEach(t => t.classList.remove('ativa'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('tela-' + tela).classList.add('ativa');
+  btn.classList.add('active');
+  state.telaAtual = tela;
+  const fab = document.getElementById('fab-btn');
+  fab.style.display = ['agenda','financeiro'].includes(tela) ? 'none' : 'flex';
+  if (tela === 'financeiro') fab.style.display = 'none';
+  if (tela === 'agenda') { renderCalendario(); fab.style.display = 'flex'; }
+  if (tela === 'eventos') renderEventos();
+  if (tela === 'servicos') renderServicos();
+  if (tela === 'colaboradoras') renderColaboradoras();
+  if (tela === 'financeiro') renderFinanceiro();
+}
+
+function abrirModalPrincipal() {
+  if (state.telaAtual === 'servicos') { abrirModalServico(); return; }
+  if (state.telaAtual === 'colaboradoras') { abrirModalColaboradora(); return; }
+  abrirModalEvento();
+}
+
+// TOAST
+function toast(msg, dur=2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+
+// MODAIS
+function abrirModal(id) { document.getElementById(id).classList.add('aberto'); }
+function fecharModal(id) { document.getElementById(id).classList.remove('aberto'); }
+
+// ==================== FIREBASE ====================
+async function carregarDados() {
+  try {
+    await auth.signInAnonymously();
+    const [evSnap, clSnap, coSnap, svSnap, pgSnap] = await Promise.all([
+      db.collection('eventos').orderBy('data').get(),
+      db.collection('clientes').orderBy('nome').get(),
+      db.collection('colaboradoras').orderBy('nome').get(),
+      db.collection('servicos').get(),
+      db.collection('pagamentos_confirmados').get(),
+    ]);
+    state.eventos = evSnap.docs.map(d => ({
+      id: d.id, ...d.data(),
+      atendimentos: d.data().atendimentos || [],
+      colabs: d.data().colabs || []
+    }));
+    state.clientes = clSnap.docs.map(d => ({id: d.id, ...d.data()}));
+    state.colaboradoras = coSnap.docs.map(d => ({id: d.id, ...d.data()}));
+    state.servicos = svSnap.docs.map(d => ({id: d.id, ...d.data()}));
+    state.pagamentosConfirmados = {};
+    pgSnap.docs.forEach(d => { state.pagamentosConfirmados[d.id] = d.data().pago; });
+    state.googleIdsNoSupabase = new Set(state.eventos.filter(e => e.google_id).map(e => e.google_id));
+  } catch(e) {
+    console.log('Erro Firebase:', e);
+  }
+  renderCalendario();
+  renderColabSelect();
+  if (state.googleToken) {
+    buscarEventosGoogle();
+  }
+}
+
+async function salvarNoBD(colecao, dados) {
+  try {
+    const ref = await db.collection(colecao).add(dados);
+    return { data: [{ ...dados, id: ref.id }] };
+  } catch(e) {
+    console.log('Erro ao salvar:', e);
+    return { data: [{ ...dados, id: 'local_' + Date.now() }] };
+  }
+}
+
+async function atualizarNoBD(colecao, id, dados) {
+  try {
+    await db.collection(colecao).doc(id).update(dados);
+  } catch(e) {
+    console.log('Erro ao atualizar:', e);
+  }
+}
+
+// ==================== GOOGLE CALENDAR ====================
+function iniciarGoogleAuth() {
+  const redirectUri = window.location.origin + window.location.pathname;
+  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(GOOGLE_SCOPES)}&prompt=select_account`;
+  window.location.href = url;
+}
+
+function verificarTokenGoogle() {
+  const hash = window.location.hash;
+  if (hash && hash.includes('access_token')) {
+    const params = new URLSearchParams(hash.replace('#', ''));
+    const token = params.get('access_token');
+    const expiresIn = parseInt(params.get('expires_in') || '3600');
+    const expiry = Date.now() + expiresIn * 1000;
+    localStorage.setItem('google_token', token);
+    localStorage.setItem('google_token_expiry', expiry.toString());
+    state.googleToken = token;
+    window.history.replaceState({}, document.title, window.location.pathname);
+    atualizarBotaoGoogle();
+    toast('Google Calendar conectado! ✓');
+    // buscarEventosGoogle será chamado pelo carregarDados que roda no DOMContentLoaded
+  } else {
+    const token = localStorage.getItem('google_token');
+    const expiry = parseInt(localStorage.getItem('google_token_expiry') || '0');
+    if (token && Date.now() < expiry) {
+      state.googleToken = token;
+      atualizarBotaoGoogle();
+      // Não chama buscarEventosGoogle aqui — será chamado pelo carregarDados após Supabase carregar
+    } else {
+      localStorage.removeItem('google_token');
+      localStorage.removeItem('google_token_expiry');
+    }
+  }
+}
+
+function atualizarBotaoGoogle() {
+  const btn = document.getElementById('btn-google-connect');
+  const btnSync = document.getElementById('btn-sync');
+  if (state.googleToken) {
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Google Conectado';
+    btn.style.color = 'var(--verde)';
+    btn.style.borderColor = 'var(--verde)';
+    btn.onclick = null;
+    if (btnSync) btnSync.style.display = 'flex';
+  }
+}
+
+async function sincronizarGoogle() {
+  const btnSync = document.getElementById('btn-sync');
+  if (btnSync) { btnSync.style.opacity = '0.5'; btnSync.style.pointerEvents = 'none'; }
+  // Remove apenas eventos que vieram SÓ do Google (id começa com g_) e NÃO estão no Supabase
+  state.eventos = state.eventos.filter(e => !e.id.startsWith('g_'));
+  await buscarEventosGoogle();
+  if (btnSync) { btnSync.style.opacity = '1'; btnSync.style.pointerEvents = 'auto'; }
+}
+
+async function buscarEventosGoogle() {
+  if (!state.googleToken) return;
+  try {
+    try {
+      const r = await db.collection('eventos').where('google_id', '!=', null).get();
+      state.googleIdsNoSupabase = new Set(r.docs.map(d => d.data().google_id).filter(Boolean));
+    } catch(e) { console.log('Erro ao recarregar googleIds:', e); }
+    // 1. Busca TODOS os calendários da conta
+    const rCals = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
+      headers: { Authorization: `Bearer ${state.googleToken}` }
+    });
+    const dataCals = await rCals.json();
+    const calendarios = (dataCals.items || []).map(c => c.id);
+
+    const agora = new Date();
+    const inicio = new Date(agora.getFullYear(), agora.getMonth(), 1).toISOString();
+    const fim = new Date(agora.getFullYear(), agora.getMonth()+2, 0).toISOString();
+
+    // 2. Busca eventos de cada calendário
+    let totalNovos = 0;
+    for (const calId of calendarios) {
+      try {
+        const r = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events?timeMin=${inicio}&timeMax=${fim}&singleEvents=true&orderBy=startTime`, {
+          headers: { Authorization: `Bearer ${state.googleToken}` }
+        });
+        const data = await r.json();
+        if (data.items) {
+          data.items.forEach(item => {
+            const dataEv = item.start.date || item.start.dateTime?.split('T')[0];
+            const dataEvStr = dataEv;
+            // Nunca sobrescreve evento que já está no Supabase
+            const jaNoSupabase = (state.googleIdsNoSupabase || new Set()).has(item.id);
+            const jaLocal = state.eventos.find(e => e.google_id === item.id || e.id === 'g_' + item.id);
+            if (!jaNoSupabase && !jaLocal && dataEvStr) {
+              state.eventos.push({
+                id: 'g_' + item.id, google_id: item.id,
+                nome: item.summary || 'Evento',
+                data: dataEvStr,
+                hora: item.start.dateTime ? item.start.dateTime.split('T')[1].substring(0,5) : '',
+                local: item.location || '',
+                status: 'confirmado', colabs: [], atendimentos: []
+              });
+              totalNovos++;
+            }
+          });
+        }
+      } catch(e) { console.log('Erro ao buscar calendário:', calId, e); }
+    }
+    renderCalendario();
+    if (totalNovos > 0) toast(`${totalNovos} evento(s) importado(s) do Google!`);
+    else toast('Agenda sincronizada!');
+  } catch(e) { console.log('Erro Google Calendar:', e); }
+}
+
+async function criarEventoGoogle(evento) {
+  if (!state.googleToken) return;
+  try {
+    const body = {
+      summary: evento.nome,
+      location: evento.local,
+      start: { dateTime: `${evento.data}T${evento.hora || '09:00'}:00`, timeZone: 'America/Sao_Paulo' },
+      end: { dateTime: `${evento.data}T${evento.hora || '09:00'}:00`, timeZone: 'America/Sao_Paulo' },
+      description: `Atendimentos: ${evento.atendimentos.map(a => `${a.cliente_nome} - ${a.servico}`).join(', ')}`
+    };
+    const r = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${state.googleToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await r.json();
+    return data.id;
+  } catch(e) { console.log(e); }
+}
+
+// ==================== AGENDA / CALENDÁRIO ====================
+function formatData(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function mudarMes(dir) {
+  state.mesAtual.setMonth(state.mesAtual.getMonth() + dir);
+  renderCalendario();
+}
+
+function renderCalendario() {
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const m = state.mesAtual;
+  document.getElementById('agenda-mes-titulo').textContent = `${meses[m.getMonth()]} ${m.getFullYear()}`;
+  const cal = document.getElementById('calendario');
+  cal.innerHTML = '';
+  const primeiroDia = new Date(m.getFullYear(), m.getMonth(), 1).getDay();
+  const diasNoMes = new Date(m.getFullYear(), m.getMonth()+1, 0).getDate();
+  const hoje = formatData(new Date());
+  const diasComEvento = new Set(state.eventos.map(e => e.data));
+  for (let i = 0; i < primeiroDia; i++) {
+    const d = document.createElement('div');
+    d.className = 'dia-cel outro-mes';
+    const prevDias = new Date(m.getFullYear(), m.getMonth(), 0).getDate();
+    d.textContent = prevDias - primeiroDia + i + 1;
+    cal.appendChild(d);
+  }
+  for (let d = 1; d <= diasNoMes; d++) {
+    const dataStr = `${m.getFullYear()}-${String(m.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const cel = document.createElement('div');
+    cel.className = 'dia-cel';
+    if (dataStr === hoje) cel.classList.add('hoje');
+    if (diasComEvento.has(dataStr)) cel.classList.add('tem-evento');
+    if (dataStr === state.diaSelecionado) cel.classList.add('selecionado');
+    cel.textContent = d;
+    cel.onclick = () => selecionarDia(dataStr);
+    cal.appendChild(cel);
+  }
+}
+
+function selecionarDia(data) {
+  state.diaSelecionado = data;
+  renderCalendario();
+  const eventos = state.eventos.filter(e => e.data === data);
+  const container = document.getElementById('eventos-dia');
+  const [ano, mes, dia] = data.split('-');
+  const titulo = `${dia}/${mes}/${ano}`;
+  if (eventos.length === 0) {
+    container.innerHTML = `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-weight:500;">${titulo}</div><button class="btn btn-outline btn-sm" onclick="abrirModalEvento('${data}')">+ Evento</button></div><div style="color:var(--texto-sec);font-size:13px;margin-top:12px;">Nenhum evento neste dia</div></div>`;
+    return;
+  }
+  container.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><div style="font-weight:500;font-size:15px;">${titulo}</div><button class="btn btn-outline btn-sm" onclick="abrirModalEvento('${data}')">+ Evento</button></div>` +
+    eventos.map(e => `
+      <div class="evento-item" onclick="abrirDetalheEvento(&quot;${e.id}&quot;)" style="cursor:pointer;">
+        <div class="evento-hora" style="pointer-events:none;">${e.hora || ''} ${e.google_id ? '📅 Google' : ''}</div>
+        <div class="evento-nome" style="pointer-events:none;">${e.nome}</div>
+        ${e.local ? `<div class="evento-local" style="pointer-events:none;">📍 ${e.local}</div>` : ''}
+        <div style="margin-top:8px;pointer-events:none;" class="status-bar">
+          <span class="badge badge-${e.status==='confirmado'?'pago':e.status==='pendente'?'pendente':'sinal'}">${e.status||'pendente'}</span>
+          <span style="font-size:12px;color:var(--texto-sec);">${e.atendimentos?.length||0} atendimento(s)</span>
+        </div>
+      </div>
+    `).join('');
+}
+
+// ==================== EVENTOS ====================
+function renderEventos(filtro='todos') {
+  let evs = [...state.eventos].sort((a,b) => a.data > b.data ? 1 : -1);
+  if (filtro !== 'todos') evs = evs.filter(e => e.status === filtro);
+  const container = document.getElementById('lista-eventos');
+  if (evs.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">Nenhum evento encontrado</div><button class="btn btn-primary btn-sm" onclick="abrirModalEvento()">Criar evento</button></div>`;
+    return;
+  }
+  container.innerHTML = evs.map(e => {
+    const total = (e.atendimentos||[]).reduce((s,a) => s + (a.servicos||[]).reduce((sv,sr)=>sv+(sr.valor||0),0), 0) + (e.deslocamento||0);
+    const recebido = (e.atendimentos||[]).reduce((s,a) => s + ((a.pagamentos||[]).reduce((ps,p) => ps+(p.valor||0), 0)), 0) + (e.deslocamento||0);
+    const [ano,mes,dia] = e.data.split('-');
+    return `
+    <div class="card" onclick="abrirDetalheEvento(&quot;${e.id}&quot;)" style="cursor:pointer;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div style="font-weight:500;font-size:16px;">${e.nome}</div>
+          <div style="font-size:13px;color:var(--texto-sec);margin-top:3px;">${dia}/${mes}/${ano} ${e.hora?'às '+e.hora:''}</div>
+          ${e.local?`<div style="font-size:12px;color:var(--texto-sec);">📍 ${e.local}</div>`:''}
+        </div>
+        <span class="badge badge-${e.status==='confirmado'?'pago':e.status==='pendente'?'pendente':'sinal'}">${e.status||'pendente'}</span>
+      </div>
+      <hr class="separador">
+      <div style="display:flex;justify-content:space-between;font-size:13px;">
+        <span style="color:var(--texto-sec);">${(e.atendimentos||[]).length} atendimento(s)</span>
+        <span style="color:var(--verde);font-weight:500;">R$ ${recebido.toFixed(2)} / R$ ${total.toFixed(2)}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filtrarEventos(filtro, el) {
+  document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('ativo'));
+  el.classList.add('ativo');
+  renderEventos(filtro);
+}
+
+function abrirModalEvento(data='') {
+  state.eventoEditandoId = null;
+  state.colabsEvento = [];
+  state.atendimentosEvento = [];
+  state.duracaoServicosEvento = {};
+  state.duplasEvento = [];
+  document.getElementById('ev-nome').value = '';
+  document.getElementById('ev-data').value = data || formatData(new Date());
+  document.getElementById('ev-hora').value = '';
+  document.getElementById('ev-local').value = '';
+  document.getElementById('modal-evento-titulo').textContent = 'Novo Evento';
+  document.getElementById('ev-deslocamento-check').checked = false;
+  document.getElementById('ev-deslocamento-valor-box').style.display = 'none';
+  document.getElementById('ev-deslocamento-valor').value = '';
+  const cc = document.getElementById('cronograma-container');
+  if (cc) cc.style.display = 'none';
+  renderColabEventoLista();
+  renderAtendimentosForm();
+  renderDuracaoServicos();
+  renderDuplas();
+  abrirModal('modal-evento');
+}
+
+async function abrirDetalheEvento(id) {
+  state.eventoDetalheId = id;
+  let ev = state.eventos.find(e => e.id === id);
+  if (!ev) return;
+  if (!id.startsWith('g_')) {
+    try {
+      const snap = await db.collection('eventos').doc(id).get();
+      if (snap.exists) {
+        const evAtualizado = { id: snap.id, ...snap.data(), atendimentos: snap.data().atendimentos || [], colabs: snap.data().colabs || [] };
+        const idx = state.eventos.findIndex(e => e.id === id);
+        if (idx >= 0) state.eventos[idx] = evAtualizado;
+        ev = evAtualizado;
+      }
+    } catch(e) { console.log('Erro ao recarregar evento:', e); }
+  }
+  const [ano,mes,dia] = ev.data.split('-');
+  const totalAtend = (ev.atendimentos||[]).reduce((s,a) => s+((a.servicos||[]).reduce((sv,sr)=>sv+(sr.valor||0),0)), 0);
+  const total = totalAtend + (ev.deslocamento||0);
+  const totalComissao = (ev.atendimentos||[]).reduce((s,a) =>
+    s + (a.servicos||[]).reduce((sv,sr) => sv+(sr.valor||0)*(sr.comissao_pct||0)/100, 0), 0);
+  let html = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+      <div>
+        <div class="modal-titulo" style="margin-bottom:4px;">${ev.nome}</div>
+        <div style="font-size:13px;color:var(--texto-sec);">${dia}/${mes}/${ano} ${ev.hora?'às '+ev.hora:''}</div>
+        ${ev.local?`<div style="font-size:12px;color:var(--texto-sec);">📍 ${ev.local}</div>`:''}
+      </div>
+      <span class="badge badge-${ev.status==='confirmado'?'pago':ev.status==='pendente'?'pendente':'sinal'}">${ev.status||'pendente'}</span>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <select class="form-input" style="flex:1;" onchange="mudarStatusEvento('${id}',this.value)">
+        <option ${ev.status==='pendente'?'selected':''}>pendente</option>
+        <option ${ev.status==='confirmado'?'selected':''}>confirmado</option>
+        <option ${ev.status==='concluido'?'selected':''}>concluido</option>
+        <option ${ev.status==='cancelado'?'selected':''}>cancelado</option>
+      </select>
+    </div>
+    <div style="background:var(--cinza-light);border-radius:var(--radius-sm);padding:12px;margin-bottom:16px;display:flex;justify-content:space-between;">
+      <div><div style="font-size:11px;color:var(--texto-sec);">Total</div><div style="font-weight:500;">R$ ${total.toFixed(2)}</div></div>
+      <div><div style="font-size:11px;color:var(--texto-sec);">Comissões</div><div style="font-weight:500;">R$ ${totalComissao.toFixed(2)}</div></div>
+      <div><div style="font-size:11px;color:var(--texto-sec);">Líquido</div><div style="font-weight:500;color:var(--verde);">R$ ${(total-totalComissao).toFixed(2)}</div></div>
+    </div>
+    ${ev.deslocamento > 0 ? `
+    <div style="background:var(--dourado-light);border:1px solid var(--dourado);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-weight:500;font-size:14px;">🚗 Deslocamento</div>
+          <div style="font-size:12px;color:var(--texto-sec);">Receita sem comissão</div>
+        </div>
+        <div style="font-weight:500;font-size:16px;color:#a07830;">R$ ${(ev.deslocamento||0).toFixed(2)}</div>
+      </div>
+    </div>` : ''}
+    <div style="font-weight:500;font-size:14px;margin-bottom:12px;">Atendimentos</div>
+  `;
+  const htmlCronograma = gerarHtmlCronogramaDetalhe(ev);
+  if (htmlCronograma) html = `<div style="margin-bottom:16px;">${htmlCronograma}</div><hr class="separador">` + html;
+  (ev.atendimentos||[]).forEach((a, idx) => {
+    const totalA = (a.servicos||[]).reduce((s,sv)=>s+(sv.valor||0),0);
+    const pago = (a.pagamentos||[]).reduce((s,p) => s+(p.valor||0), 0);
+    const restante = totalA - pago;
+    html += `
+    <div class="atendimento-row">
+      <div class="atendimento-header">
+        <div class="atendimento-cliente">${a.cliente_nome}</div>
+        <div class="atendimento-valor">R$ ${totalA.toFixed(2)}</div>
+      </div>
+      <div class="atendimento-sub">
+        ${(a.servicos||[]).map(s => {
+          const c = (s.valor||0)*(s.comissao_pct||0)/100;
+          return `${s.nome}: R$ ${(s.valor||0).toFixed(2)}${s.colab_nome ? ' ('+s.colab_nome+(c>0?' · com. R$ '+c.toFixed(2):'')+')' : ''}`;
+        }).join(' · ')}
+      </div>
+      <div style="margin-top:10px;">
+        ${(a.pagamentos||[]).map(p => `<div class="pagamento-row"><span style="font-size:13px;color:var(--texto-sec);">${p.tipo} · ${p.forma}</span><span style="font-size:13px;color:var(--verde);font-weight:500;">+ R$ ${(p.valor||0).toFixed(2)}</span></div>`).join('')}
+        ${restante > 0 ? `<div class="pagamento-row"><span style="font-size:13px;color:var(--texto-sec);">Pendente</span><span style="font-size:13px;color:#dc2626;font-weight:500;">R$ ${restante.toFixed(2)}</span></div>` : ''}
+      </div>
+      ${restante > 0 ? `<button class="btn btn-outline btn-sm" style="margin-top:8px;width:100%;" onclick="fecharModal('modal-detalhe-evento');abrirModalPagamento('${id}',${idx})">+ Registrar pagamento</button>` : '<div style="color:var(--verde);font-size:13px;margin-top:8px;">✓ Quitado</div>'}
+    </div>`;
+  });
+  document.getElementById('detalhe-evento-conteudo').innerHTML = html;
+  abrirModal('modal-detalhe-evento');
+}
+
+function mudarStatusEvento(id, status) {
+  const ev = state.eventos.find(e => e.id === id);
+  if (ev) { ev.status = status; atualizarNoBD('eventos', id, {status}); }
+}
+
+async function salvarEvento() {
+  const nome = document.getElementById('ev-nome').value.trim();
+  const data = document.getElementById('ev-data').value;
+  if (!nome || !data) { toast('Preencha nome e data!'); return; }
+  const deslocamentoCheck = document.getElementById('ev-deslocamento-check').checked;
+  const deslocamentoValor = deslocamentoCheck ? (parseFloat(document.getElementById('ev-deslocamento-valor').value) || 0) : 0;
+  const dados = {
+    nome, data,
+    hora: document.getElementById('ev-hora').value,
+    local: document.getElementById('ev-local').value,
+    colabs: JSON.parse(JSON.stringify(state.colabsEvento)),
+    atendimentos: JSON.parse(JSON.stringify(state.atendimentosEvento)),
+    duracoes: JSON.parse(JSON.stringify(state.duracaoServicosEvento)),
+    duplas: JSON.parse(JSON.stringify(state.duplasEvento)),
+    deslocamento: deslocamentoValor,
+  };
+  if (state.eventoEditandoId) {
+    const idx = state.eventos.findIndex(e => e.id === state.eventoEditandoId);
+    if (idx >= 0) {
+      const evAtualizado = {...state.eventos[idx], ...dados};
+      console.log('Salvando evento:', state.eventoEditandoId, dados);
+
+      if (state.eventoEditandoId.startsWith('g_')) {
+        // Evento veio do Google — migra para Firebase pela primeira vez
+        const dadosParaSalvar = {...evAtualizado};
+        delete dadosParaSalvar.id;
+        const r = await salvarNoBD('eventos', dadosParaSalvar);
+        if (r.data && r.data[0]) {
+          const novoId = r.data[0].id;
+          state.eventos[idx] = {...evAtualizado, id: novoId};
+          state.eventoEditandoId = novoId;
+          if (!state.googleIdsNoSupabase) state.googleIdsNoSupabase = new Set();
+          if (evAtualizado.google_id) state.googleIdsNoSupabase.add(evAtualizado.google_id);
+        }
+      } else {
+        // Evento já no Firebase — apenas atualiza
+        state.eventos[idx] = evAtualizado;
+        await atualizarNoBD('eventos', state.eventoEditandoId, dados);
+      }
+
+      toast('Evento atualizado! ✓');
+    }
+  } else {
+    dados.status = 'pendente';
+    const r = await salvarNoBD('eventos', dados);
+    if (r.data && r.data[0]) {
+      dados.id = r.data[0].id;
+      state.eventos.push(dados);
+      if (state.googleToken) {
+        const gId = await criarEventoGoogle(dados);
+        if (gId) { dados.google_id = gId; atualizarNoBD('eventos', dados.id, {google_id: gId}); }
+      }
+      toast('Evento salvo! ' + (state.googleToken ? '📅 Sincronizado com Google' : ''));
+    }
+  }
+  fecharModal('modal-evento');
+  renderCalendario();
+  if (state.telaAtual === 'eventos') renderEventos();
+  if (state.diaSelecionado === data) selecionarDia(data);
+}
+
+function editarEventoAtual() {
+  const id = state.eventoDetalheId;
+  if (!id) return;
+  const ev = state.eventos.find(e => e.id === id);
+  if (!ev) return;
+  fecharModal('modal-detalhe-evento');
+  state.eventoEditandoId = id;
+  state.colabsEvento = JSON.parse(JSON.stringify(ev.colabs || []));
+  state.atendimentosEvento = JSON.parse(JSON.stringify(ev.atendimentos || []));
+  state.duracaoServicosEvento = JSON.parse(JSON.stringify(ev.duracoes || {}));
+  state.duplasEvento = JSON.parse(JSON.stringify(ev.duplas || []));
+  document.getElementById('ev-nome').value = ev.nome;
+  document.getElementById('ev-data').value = ev.data;
+  document.getElementById('ev-hora').value = ev.hora || '';
+  document.getElementById('ev-local').value = ev.local || '';
+  document.getElementById('modal-evento-titulo').textContent = 'Editar Evento';
+  const temDesl = !!(ev.deslocamento && ev.deslocamento > 0);
+  document.getElementById('ev-deslocamento-check').checked = temDesl;
+  document.getElementById('ev-deslocamento-valor-box').style.display = temDesl ? 'block' : 'none';
+  document.getElementById('ev-deslocamento-valor').value = temDesl ? ev.deslocamento : '';
+  renderColabEventoLista();
+  renderAtendimentosForm();
+  renderDuracaoServicos();
+  renderDuplas();
+  renderCronograma();
+  abrirModal('modal-evento');
+}
+
+async function excluirEventoAtual() {
+  const id = state.eventoDetalheId;
+  if (!id) return;
+  if (!confirm('Tem certeza que deseja excluir este evento?')) return;
+  const ev = state.eventos.find(e => e.id === id);
+  if (ev && ev.google_id && state.googleToken) {
+    try {
+      await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${ev.google_id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${state.googleToken}` }
+      });
+    } catch(e) { console.log('Erro ao excluir do Google:', e); }
+  }
+  if (!id.startsWith('g_')) {
+    try { await db.collection('eventos').doc(id).delete(); } catch(e) {}
+  }
+  state.eventos = state.eventos.filter(e => e.id !== id);
+  fecharModal('modal-detalhe-evento');
+  toast('Evento excluído!');
+  renderCalendario();
+  if (state.diaSelecionado) selecionarDia(state.diaSelecionado);
+  if (state.telaAtual === 'eventos') renderEventos();
+}
+
+// ==================== COLABORADORAS NO EVENTO ====================
+function renderColabSelect() {
+  const sel = document.getElementById('colab-sel');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Selecionar colaboradora...</option>' +
+    state.colaboradoras.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+}
+
+function adicionarColabEvento() {
+  const sel = document.getElementById('colab-sel');
+  const id = sel.value;
+  if (!id) return;
+  const colab = state.colaboradoras.find(c => c.id === id);
+  if (!colab || state.colabsEvento.find(c => c.id === id)) { toast('Colaboradora já adicionada'); return; }
+  state.colabsEvento.push({id: colab.id, nome: colab.nome, servicos: []});
+  renderColabEventoLista();
+  renderAtendimentosForm();
+  renderDuplas();
+}
+
+function renderColabEventoLista() {
+  const container = document.getElementById('colabs-evento-lista');
+  if (state.colabsEvento.length === 0) {
+    container.innerHTML = '<div style="font-size:13px;color:var(--texto-sec);margin-bottom:8px;">Nenhuma colaboradora adicionada</div>';
+    return;
+  }
+  container.innerHTML = state.colabsEvento.map((c, idx) => `
+    <div style="background:var(--cinza-light);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span style="font-weight:500;font-size:14px;">${c.nome}</span>
+        <button onclick="removerColabEvento(${idx})" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:18px;">×</button>
+      </div>
+      <div style="font-size:12px;color:var(--texto-sec);margin-bottom:6px;">Serviços que fará neste evento:</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        ${(state.servicos.length > 0 ? state.servicos.map(s => s.nome) : ['Maquiagem','Cabelo']).map(s => `
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">
+            <input type="checkbox" ${(c.servicos||[]).includes(s)?'checked':''} onchange="toggleServico(${idx},'${s}',this.checked)"> ${s}
+          </label>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleServico(idx, servico, checked) {
+  if (checked) {
+    if (!state.colabsEvento[idx].servicos.includes(servico)) state.colabsEvento[idx].servicos.push(servico);
+  } else {
+    state.colabsEvento[idx].servicos = state.colabsEvento[idx].servicos.filter(s => s !== servico);
+  }
+  renderAtendimentosForm();
+}
+
+function removerColabEvento(idx) {
+  state.colabsEvento.splice(idx, 1);
+  renderColabEventoLista();
+  renderAtendimentosForm();
+  renderDuplas();
+}
+
+// ==================== ATENDIMENTOS NO EVENTO ====================
+const SERVICOS_LISTA = ['Maquiagem', 'Cabelo', 'Sobrancelha', 'Cílios', 'Penteado', 'Skincare'];
+
+function adicionarAtendimento() {
+  state.atendimentosEvento.push({
+    cliente_nome: '',
+    hora_fixa: '',
+    servicos: [],
+    colab_id: '', colab_nome: '',
+    comissao_pct: 0,
+    pagamentos: []
+  });
+  renderAtendimentosForm();
+}
+
+function sugerirColab(servico) {
+  const aptos = state.colabsEvento.filter(c => (c.servicos||[]).includes(servico));
+  if (aptos.length === 0) return null;
+  const contagens = aptos.map(c => ({
+    colab: c,
+    count: state.atendimentosEvento.filter(a => a.colab_id === c.id && a.servico === servico).length
+  }));
+  contagens.sort((a,b) => a.count - b.count);
+  return contagens[0].colab;
+}
+
+function calcTotalAtend(a) {
+  return (a.servicos||[]).reduce((s, sv) => s + (sv.valor||0), 0);
+}
+
+function renderAtendimentosForm() {
+  const container = document.getElementById('atendimentos-form');
+  if (state.atendimentosEvento.length === 0) {
+    container.innerHTML = '<div style="font-size:13px;color:var(--texto-sec);margin-bottom:8px;">Nenhum cliente adicionado</div>';
+    return;
+  }
+  container.innerHTML = state.atendimentosEvento.map((a, idx) => {
+    const totalCliente = calcTotalAtend(a);
+    const totalComissaoCliente = (a.servicos||[]).reduce((s,sv) => s+(sv.valor||0)*(sv.comissao_pct||0)/100, 0);
+    const horaSugerida = a.hora_sugerida || '';
+    return `
+    <div style="background:var(--cinza-light);border-radius:var(--radius-sm);padding:14px;margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <span style="font-weight:500;font-size:14px;">Cliente ${idx+1} ${horaSugerida ? '<span style="font-size:11px;color:var(--rosa);margin-left:6px;">⏰ '+horaSugerida+'</span>' : ''}</span>
+        <button onclick="removerAtendimento(${idx})" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:18px;">✕</button>
+      </div>
+
+      <div class="form-grupo">
+        <label class="form-label">Nome do cliente</label>
+        <input class="form-input" placeholder="Ex: Katia" value="${a.cliente_nome||''}" onblur="atualizarNomeAtend(${idx}, this.value)">
+      </div>
+
+      <div class="form-grupo">
+        <label class="form-label">Horário fixo <span style="color:var(--texto-sec);font-size:11px;">(opcional — atender somente a partir deste horário)</span></label>
+        <input class="form-input" type="time" value="${a.hora_fixa||''}"
+          onchange="atualizarHoraFixaAtend(${idx}, this.value)">
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <label class="form-label" style="margin:0;">Serviços</label>
+        <button class="btn btn-outline btn-sm" onclick="abrirSelServicos(${idx})">+ Selecionar</button>
+      </div>
+      ${(a.servicos||[]).length === 0 ? '<div style="font-size:13px;color:var(--texto-sec);margin-bottom:8px;">Nenhum serviço selecionado</div>' : ''}
+      ${(a.servicos||[]).map(sv => {
+        const comissaoSv = (sv.valor||0)*(sv.comissao_pct||0)/100;
+        return `
+        <div style="margin-bottom:8px;background:#fff;border-radius:6px;padding:10px;border:1px solid var(--cinza-borda);">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+            <span style="font-size:13px;font-weight:500;flex:1;">${sv.nome}</span>
+            ${sv.hora_inicio ? `<span style="font-size:11px;color:var(--rosa);background:var(--rosa-light);padding:2px 8px;border-radius:20px;white-space:nowrap;">⏰ ${sv.hora_inicio}–${sv.hora_fim}${sv.colab_nome?' · '+sv.colab_nome:''}</span>` : ''}
+            <button onclick="toggleServicoCl(${idx},'${sv.nome}',false)" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:16px;padding:2px;">✕</button>
+          </div>
+          <input class="form-input" type="number" placeholder="R$ 0,00" min="0" step="0.01"
+            value="${sv.valor||''}"
+            onchange="atualizarValorServico(${idx},'${sv.nome}',parseFloat(this.value)||0)">
+          ${sv.colab_id ? `
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+              <span style="font-size:12px;color:var(--texto-sec);flex:1;">Comissão ${sv.colab_nome}:</span>
+              <input class="form-input" type="number" min="0" max="100" style="width:65px;padding:4px 8px;"
+                value="${sv.comissao_pct||0}"
+                onchange="atualizarComissaoServico(${idx},'${sv.nome}',parseFloat(this.value)||0)">
+              <span style="font-size:12px;color:var(--texto-sec);">%</span>
+              ${(sv.valor||0) > 0 ? `<span style="font-size:13px;color:var(--rosa);font-weight:500;white-space:nowrap;">= R$ ${comissaoSv.toFixed(2)}</span>` : ''}
+            </div>
+          ` : '<div style="font-size:11px;color:var(--texto-sec);margin-top:4px;">Use \'Distribuir\' para atribuir colaboradora</div>'}
+        </div>`;
+      }).join('')}
+
+      <div style="border-top:1px solid var(--cinza-borda);margin:12px 0;padding-top:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:13px;color:var(--texto-sec);">Total do cliente</span>
+          <span style="font-weight:500;font-size:15px;color:var(--verde);">R$ ${totalCliente.toFixed(2)}</span>
+        </div>
+        ${totalComissaoCliente > 0 ? `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+          <span style="font-size:12px;color:var(--texto-sec);">Total de comissões</span>
+          <span style="font-size:13px;color:var(--rosa);font-weight:500;">R$ ${totalComissaoCliente.toFixed(2)}</span>
+        </div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function atualizarNomeAtend(idx, valor) {
+  state.atendimentosEvento[idx].cliente_nome = valor;
+}
+
+function toggleServicoCl(idx, nomeServico, checked) {
+  if (!state.atendimentosEvento[idx].servicos) state.atendimentosEvento[idx].servicos = [];
+  if (checked) {
+    if (!state.atendimentosEvento[idx].servicos.find(s => s.nome === nomeServico)) {
+      state.atendimentosEvento[idx].servicos.push({nome: nomeServico, valor: 0});
+    }
+  } else {
+    state.atendimentosEvento[idx].servicos = state.atendimentosEvento[idx].servicos.filter(s => s.nome !== nomeServico);
+  }
+  renderAtendimentosForm();
+}
+
+function atualizarValorServico(idx, nomeServico, valor) {
+  if (!state.atendimentosEvento[idx].servicos) state.atendimentosEvento[idx].servicos = [];
+  const sv = state.atendimentosEvento[idx].servicos.find(s => s.nome === nomeServico);
+  if (sv) sv.valor = valor;
+  renderAtendimentosForm();
+}
+
+function atualizarComissaoServico(idx, nomeServico, pct) {
+  const sv = (state.atendimentosEvento[idx].servicos||[]).find(s => s.nome === nomeServico);
+  if (sv) sv.comissao_pct = pct;
+  renderAtendimentosForm();
+}
+
+function imprimirCronograma() {
+  const ev = state.eventos.find(e => e.id === state.eventoEditandoId) || { nome: 'Cronograma', data: '', hora: '' };
+  const [ano, mes, dia] = (ev.data || '-- -').split('-');
+  const dataLabel = ev.data ? `${dia}/${mes}/${ano}${ev.hora ? ' às ' + ev.hora : ''}` : '';
+
+  const clientesAgendados = state.atendimentosEvento.filter(a =>
+    (a.servicos||[]).some(sv => sv.hora_inicio && sv.colab_id)
+  ).sort((a, b) => {
+    const primeiroA = (a.servicos||[]).filter(sv => sv.hora_inicio).map(sv => sv.hora_inicio).sort()[0] || '';
+    const primeiroB = (b.servicos||[]).filter(sv => sv.hora_inicio).map(sv => sv.hora_inicio).sort()[0] || '';
+    return primeiroA.localeCompare(primeiroB);
+  });
+
+  const corpoHtml = clientesAgendados.map((a, i) => {
+    const nome = a.cliente_nome || `Cliente ${i + 1}`;
+    const svs = (a.servicos||[])
+      .filter(sv => sv.hora_inicio && sv.colab_id)
+      .sort((x, y) => x.hora_inicio.localeCompare(y.hora_inicio));
+    return `
+      <div class="cliente">
+        <div class="cliente-nome">${nome}</div>
+        ${svs.map(sv => `
+          <div class="slot">
+            <span class="hora">${sv.hora_inicio}h – ${sv.hora_fim}h</span>
+            <span class="servico">${sv.nome}</span>
+            <span class="colab">(${sv.colab_nome})</span>
+          </div>`).join('')}
+      </div>`;
+  }).join('');
+
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
+    <title>Cronograma — ${ev.nome}</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: Arial, sans-serif; padding: 32px; color: #1a1a1a; font-size: 14px; }
+      h1 { font-size: 20px; margin-bottom: 4px; text-align: center; }
+      .subtitulo { font-size: 13px; color: #666; margin-bottom: 28px; text-align: center; }
+      .logo-wm { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 380px; opacity: 0.18; z-index: -1; pointer-events: none; }
+      .cliente { margin-bottom: 22px; page-break-inside: avoid; }
+      .cliente-nome { font-size: 15px; font-weight: 700; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 2px solid #eee; }
+      .slot { display: flex; align-items: center; gap: 14px; padding: 6px 0; border-bottom: 1px solid #f0f0f0; }
+      .hora { font-weight: 600; color: #b5476a; white-space: nowrap; min-width: 140px; }
+      .servico { flex: 1; }
+      .colab { color: #777; font-style: italic; white-space: nowrap; }
+      @media print { @page { margin: 2cm; } }
+    </style>
+  </head><body>
+    <img class="logo-wm" src="data:image/png;base64,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" alt="Studio Thayna">
+    <h1>${ev.nome}</h1>
+    ${dataLabel ? `<div class="subtitulo">${dataLabel}</div>` : ''}
+    ${corpoHtml}
+  </body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 300);
+}
+
+function atualizarHoraFixaAtend(idx, valor) {
+  state.atendimentosEvento[idx].hora_fixa = valor;
+}
+
+function renderDuracaoServicos() {
+  const el = document.getElementById('duracao-servicos-container');
+  if (!el) return;
+  if (!state.servicos || state.servicos.length === 0) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <div style="padding:12px;background:var(--cinza-light);border-radius:var(--radius-sm);margin-bottom:12px;">
+      <div style="font-size:13px;font-weight:500;margin-bottom:10px;">⏱ Duração dos serviços</div>
+      ${state.servicos.map(s => `
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          <span style="flex:1;font-size:13px;">${s.nome}</span>
+          <input class="form-input" type="number" min="5" max="480" style="width:70px;padding:4px 8px;text-align:center;"
+            value="${state.duracaoServicosEvento[s.nome] || 50}"
+            onchange="atualizarDuracaoServico('${s.nome}', parseInt(this.value)||50)">
+          <span style="font-size:12px;color:var(--texto-sec);">min</span>
+        </div>
+      `).join('')}
+    </div>`;
+}
+
+function atualizarDuracaoServico(nomeServico, minutos) {
+  state.duracaoServicosEvento[nomeServico] = minutos;
+}
+
+function renderDuplas() {
+  const el = document.getElementById('duplas-container');
+  if (!el) return;
+  if (state.colabsEvento.length < 2) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <div style="padding:12px;background:var(--cinza-light);border-radius:var(--radius-sm);margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div style="font-size:13px;font-weight:500;">👥 Duplas de colaboradoras</div>
+        <button class="btn btn-outline btn-sm" onclick="adicionarDupla()">+ Dupla</button>
+      </div>
+      ${state.duplasEvento.length === 0
+        ? '<div style="font-size:12px;color:var(--texto-sec);">Nenhuma dupla configurada</div>'
+        : state.duplasEvento.map((d, idx) => {
+          const optsA = state.colabsEvento.map(c => `<option value="${c.id}" ${d.colabA_id===c.id?'selected':''}>${c.nome}</option>`).join('');
+          const optsB = state.colabsEvento.map(c => `<option value="${c.id}" ${d.colabB_id===c.id?'selected':''}>${c.nome}</option>`).join('');
+          const svA = (state.colabsEvento.find(c => c.id === d.colabA_id)?.servicos || []).join(', ');
+          const svB = (state.colabsEvento.find(c => c.id === d.colabB_id)?.servicos || []).join(', ');
+          return `
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:120px;">
+              <select class="form-input" style="width:100%;padding:4px 6px;font-size:12px;"
+                onchange="atualizarDupla(${idx},'colabA',this.value,this.options[this.selectedIndex].text)">
+                <option value="">Colaboradora A...</option>${optsA}
+              </select>
+              ${svA ? `<div style="font-size:11px;color:var(--texto-sec);margin-top:2px;padding-left:2px;">${svA}</div>` : ''}
+            </div>
+            <span style="font-size:14px;color:var(--texto-sec);font-weight:bold;">+</span>
+            <div style="flex:1;min-width:120px;">
+              <select class="form-input" style="width:100%;padding:4px 6px;font-size:12px;"
+                onchange="atualizarDupla(${idx},'colabB',this.value,this.options[this.selectedIndex].text)">
+                <option value="">Colaboradora B...</option>${optsB}
+              </select>
+              ${svB ? `<div style="font-size:11px;color:var(--texto-sec);margin-top:2px;padding-left:2px;">${svB}</div>` : ''}
+            </div>
+            <button onclick="removerDupla(${idx})" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:18px;padding:0 4px;">×</button>
+          </div>`;
+        }).join('')}
+    </div>`;
+}
+
+function adicionarDupla() {
+  state.duplasEvento.push({ colabA_id: '', colabA_nome: '', colabB_id: '', colabB_nome: '' });
+  renderDuplas();
+}
+
+function removerDupla(idx) {
+  state.duplasEvento.splice(idx, 1);
+  renderDuplas();
+}
+
+function atualizarDupla(idx, campo, valor, texto) {
+  const d = state.duplasEvento[idx];
+  if (campo === 'colabA') { d.colabA_id = valor; d.colabA_nome = texto; }
+  else if (campo === 'colabB') { d.colabB_id = valor; d.colabB_nome = texto; }
+  renderDuplas();
+}
+
+function exportarCronogramaExcel() {
+  const ev = state.eventos.find(e => e.id === state.eventoEditandoId) || { nome: 'Cronograma', data: '' };
+  const [ano, mes, dia] = (ev.data || '--').split('-');
+  const dataLabel = ev.data ? ` ${dia}/${mes}/${ano}` : '';
+
+  // Monta agenda por colaboradora
+  const colabSchedule = {};
+  state.colabsEvento.forEach(c => { colabSchedule[c.id] = { nome: c.nome, servicos: c.servicos || [], slots: [] }; });
+
+  state.atendimentosEvento.forEach(atend => {
+    (atend.servicos || []).forEach(sv => {
+      if (!sv.hora_inicio || !sv.colab_id) return;
+      if (!colabSchedule[sv.colab_id]) colabSchedule[sv.colab_id] = { nome: sv.colab_nome, servicos: [], slots: [] };
+      colabSchedule[sv.colab_id].slots.push({
+        hora_inicio: sv.hora_inicio,
+        hora_fim: sv.hora_fim,
+        cliente: atend.cliente_nome || '—'
+      });
+    });
+  });
+
+  // Ordena colaboradoras: duplas primeiro (colabA seguida de colabB), depois as demais
+  const colabsOrdenadas = [];
+  const jaAdicionados = new Set();
+  (state.duplasEvento || []).forEach(d => {
+    if (d.colabA_id && !jaAdicionados.has(d.colabA_id)) {
+      const c = state.colabsEvento.find(x => x.id === d.colabA_id);
+      if (c) { colabsOrdenadas.push(c); jaAdicionados.add(c.id); }
+    }
+    if (d.colabB_id && !jaAdicionados.has(d.colabB_id)) {
+      const c = state.colabsEvento.find(x => x.id === d.colabB_id);
+      if (c) { colabsOrdenadas.push(c); jaAdicionados.add(c.id); }
+    }
+  });
+  state.colabsEvento.forEach(c => { if (!jaAdicionados.has(c.id)) colabsOrdenadas.push(c); });
+
+  const colabs = colabsOrdenadas.filter(c => colabSchedule[c.id]?.slots.length > 0);
+  if (colabs.length === 0) { toast('Distribua primeiro para exportar'); return; }
+
+  colabs.forEach(c => {
+    colabSchedule[c.id].slots.sort((a, b) => tempoParaMinutos(a.hora_inicio) - tempoParaMinutos(b.hora_inicio));
+  });
+
+  // Coleta todos os horários únicos, ordenados
+  const todasHoras = [...new Set(
+    colabs.flatMap(c => colabSchedule[c.id].slots.map(s => s.hora_inicio))
+  )].sort((a, b) => tempoParaMinutos(a) - tempoParaMinutos(b));
+
+  const verde      = '#4e7c3a';
+  const verdeClaro = '#8bc34a';
+  const verdeLinhaA = '#d9ead3';
+  const verdeLinhaB = '#b6d7a8';
+
+  const tdStyle = 'border:1px solid #999;padding:4px 8px;white-space:nowrap;font-size:11px;font-family:Arial;';
+  const thStyle = `${tdStyle}background:${verdeClaro};font-weight:bold;text-align:center;`;
+  const totalCols = colabs.length * 2;
+
+  let rows = '';
+
+  // Linha de cabeçalho do evento
+  rows += `<tr><td colspan="${totalCols}" style="${tdStyle}background:${verde};color:#fff;font-weight:bold;text-align:center;font-size:13px;">${ev.nome}${dataLabel}</td></tr>`;
+
+  // Linha de cabeçalho das colaboradoras
+  rows += '<tr>';
+  colabs.forEach(c => {
+    const svs = (colabSchedule[c.id].servicos || []).map(s => s.charAt(0).toUpperCase()).join('/');
+    rows += `<td style="${thStyle}">Horário</td>`;
+    rows += `<td style="${thStyle}">${c.nome}${svs ? ' (' + svs + ')' : ''}</td>`;
+  });
+  rows += '</tr>';
+
+  // Linhas de dados
+  todasHoras.forEach((hora, rowIdx) => {
+    const bg = rowIdx % 2 === 0 ? verdeLinhaA : verdeLinhaB;
+    rows += '<tr>';
+    colabs.forEach(c => {
+      const slot = colabSchedule[c.id].slots.find(s => s.hora_inicio === hora);
+      const horaCel = slot ? `${slot.hora_inicio} - ${slot.hora_fim}` : '';
+      const nomeCel = slot ? slot.cliente : '';
+      rows += `<td style="${tdStyle}background:${bg};text-align:center;">${horaCel}</td>`;
+      rows += `<td style="${tdStyle}background:${bg};">${nomeCel}</td>`;
+    });
+    rows += '</tr>';
+  });
+
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
+    xmlns:x="urn:schemas-microsoft-com:office:excel"
+    xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8">
+<meta name="ProgId" content="Excel.Sheet">
+<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets>
+<x:ExcelWorksheet><x:Name>Cronograma</x:Name>
+<x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
+</head><body><table>${rows}</table></body></html>`;
+
+  const blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `cronograma-${(ev.nome || 'evento').replace(/[^a-z0-9]/gi, '_')}.xls`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function abrirLinhaTempo() {
+  // Filtra clientes que têm pelo menos um serviço agendado
+  const clientesAgendados = state.atendimentosEvento.filter(a =>
+    (a.servicos||[]).some(sv => sv.hora_inicio && sv.colab_id)
+  );
+  if (clientesAgendados.length === 0) { toast('Distribua primeiro para ver o cronograma'); return; }
+
+  // Texto plano (para copiar)
+  let textoCopiar = '';
+  // HTML visual
+  let html = '';
+
+  clientesAgendados.sort((a, b) => {
+    const primeiroA = (a.servicos||[]).filter(sv => sv.hora_inicio).map(sv => sv.hora_inicio).sort()[0] || '';
+    const primeiroB = (b.servicos||[]).filter(sv => sv.hora_inicio).map(sv => sv.hora_inicio).sort()[0] || '';
+    return primeiroA.localeCompare(primeiroB);
+  });
+
+  clientesAgendados.forEach((a, i) => {
+    const nome = a.cliente_nome || `Cliente ${i + 1}`;
+    const svOrdenados = (a.servicos||[])
+      .filter(sv => sv.hora_inicio && sv.colab_id)
+      .sort((x, y) => x.hora_inicio.localeCompare(y.hora_inicio));
+
+    textoCopiar += `${nome}\n`;
+    svOrdenados.forEach(sv => {
+      textoCopiar += `${sv.hora_inicio}h - ${sv.hora_fim}h ${sv.nome} (${sv.colab_nome})\n`;
+    });
+    textoCopiar += '\n';
+
+    html += `
+    <div style="margin-bottom:18px;">
+      <div style="font-weight:600;font-size:15px;margin-bottom:8px;color:var(--texto);">${nome}</div>
+      ${svOrdenados.map(sv => `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--cinza-light);border-radius:6px;margin-bottom:4px;">
+          <span style="font-size:13px;font-weight:600;color:var(--rosa);white-space:nowrap;">${sv.hora_inicio}h – ${sv.hora_fim}h</span>
+          <span style="font-size:13px;flex:1;">${sv.nome}</span>
+          <span style="font-size:12px;color:var(--texto-sec);">(${sv.colab_nome})</span>
+        </div>
+      `).join('')}
+    </div>`;
+  });
+
+  window._cronogramaHtmlParaImprimir = html;
+  const conteudo = document.getElementById('linha-tempo-conteudo');
+  conteudo.innerHTML = `
+    <button class="btn btn-primary btn-sm" style="width:100%;justify-content:center;margin-bottom:16px;"
+      onclick="imprimirCronograma()">
+      🖨️ Imprimir / Salvar PDF
+    </button>
+    ${html}`;
+  abrirModal('modal-linha-tempo');
+}
+
+function atualizarAtendimento(idx, campo, valor, texto='') {
+  if (campo === 'cliente_nome') {
+    state.atendimentosEvento[idx].cliente_nome = valor;
+    return;
+  } else if (campo === 'colab') {
+    state.atendimentosEvento[idx].colab_id = valor;
+    state.atendimentosEvento[idx].colab_nome = texto;
+    const colab = state.colaboradoras.find(c => c.id === valor);
+    if (colab && !state.atendimentosEvento[idx].comissao_pct) {
+      state.atendimentosEvento[idx].comissao_pct = colab.comissao_padrao;
+    }
+  } else if (campo === 'servico') {
+    state.atendimentosEvento[idx].servico = valor;
+  } else {
+    state.atendimentosEvento[idx][campo] = valor;
+  }
+  renderAtendimentosForm();
+}
+
+function minutosParaTempo(min) {
+  return `${String(Math.floor(min/60)).padStart(2,'0')}:${String(min%60).padStart(2,'0')}`;
+}
+function tempoParaMinutos(t) {
+  const [h, m] = (t||'08:00').split(':').map(Number);
+  return h * 60 + m;
+}
+
+function distribuirAutomatico() {
+  if (state.colabsEvento.length === 0) { toast('Adicione colaboradoras primeiro!'); return; }
+  if (state.atendimentosEvento.length === 0) { toast('Adicione clientes primeiro!'); return; }
+
+  const baseMinuto = tempoParaMinutos(document.getElementById('ev-hora').value || '08:00');
+  const getDuracao = (svNome) => state.duracaoServicosEvento[svNome] || 50;
+
+  // Limpar atribuições anteriores
+  state.atendimentosEvento.forEach(a => (a.servicos || []).forEach(sv => {
+    delete sv.colab_id; delete sv.colab_nome; delete sv.hora_inicio; delete sv.hora_fim;
+  }));
+
+  // Estado de cada cliente: serviços pendentes + quando o cliente fica livre + quantos já agendados
+  const clState = state.atendimentosEvento.map(atend => ({
+    atend,
+    pendentes: [...(atend.servicos || [])],
+    // Hora fixa: cliente só pode ser atendida a partir desse horário
+    livre: atend.hora_fixa
+      ? Math.max(baseMinuto, tempoParaMinutos(atend.hora_fixa))
+      : baseMinuto,
+    agendados: 0
+  }));
+
+  const totalServicos = clState.reduce((s, cs) => s + cs.pendentes.length, 0);
+  let agendados = 0;
+
+  const colabFreeTime = {};
+  state.colabsEvento.forEach(c => { colabFreeTime[c.id] = baseMinuto; });
+
+  // Helper: atribui um serviço a um collab e atualiza o estado
+  const doAssign = (sv, colabId, colabNome, inicio, fim) => {
+    const colabFull = state.colaboradoras.find(c => c.id === colabId);
+    sv.colab_id = colabId; sv.colab_nome = colabNome;
+    sv.hora_inicio = minutosParaTempo(inicio); sv.hora_fim = minutosParaTempo(fim);
+    sv.comissao_pct = colabFull?.comissao_padrao ?? sv.comissao_pct ?? 0;
+  };
+
+  // ====== PRÉ-PASSO: Duplas ======
+  // 1) Distribui clientes entre as duplas em round-robin (evita que uma dupla
+  //    monopolize todos os clientes quando há múltiplos pares com os mesmos serviços).
+  // 2) Cada dupla processa seus clientes em blocos de 2 com interleaving:
+  //    Slot paralelo: colabA→C1 | colabB→C2  →  Slot cruzado: colabA→C2 | colabB→C1
+
+  const duplasValidas = (state.duplasEvento || []).filter(d => {
+    return d.colabA_id && d.colabB_id &&
+           state.colabsEvento.find(c => c.id === d.colabA_id) &&
+           state.colabsEvento.find(c => c.id === d.colabB_id);
+  });
+
+  if (duplasValidas.length > 0) {
+    // Para cada cliente, descobrir quais duplas podem atendê-lo
+    const clientDupla = new Array(clState.length).fill(-1);
+    const rrCounter = {};
+
+    // Ordena clientes por hora disponível para distribuir os mais cedo primeiro entre as duplas
+    const sortedByLivre = clState.map((cs, idx) => ({ cs, idx })).sort((a, b) => a.cs.livre - b.cs.livre);
+    sortedByLivre.forEach(({ cs, idx }) => {
+      const elegiveisIdxs = duplasValidas.reduce((acc, d, dIdx) => {
+        const aEv = state.colabsEvento.find(c => c.id === d.colabA_id);
+        const bEv = state.colabsEvento.find(c => c.id === d.colabB_id);
+        const svA = aEv?.servicos || [];
+        const svB = bEv?.servicos || [];
+        const hasA = cs.pendentes.some(p => svA.length === 0 || svA.includes(p.nome));
+        const hasB = cs.pendentes.some(p => svB.length === 0 || svB.includes(p.nome));
+        if (hasA && hasB) acc.push(dIdx);
+        return acc;
+      }, []);
+      if (elegiveisIdxs.length === 0) return;
+      const rrKey = elegiveisIdxs.join(',');
+      if (!rrCounter[rrKey]) rrCounter[rrKey] = 0;
+      clientDupla[idx] = elegiveisIdxs[rrCounter[rrKey]++ % elegiveisIdxs.length];
+    });
+
+    // Pré-atribui clientes com hora_fixa (sem dupla) à colaboradora com MENOR carga,
+    // considerando já os clientes de dupla atribuídos — evita concentração em uma collab
+    const horaFixaPreAssigned = new Map();
+    {
+      const colabCarga = {};
+      state.colabsEvento.forEach(c => { colabCarga[c.id] = 0; });
+      // Conta clientes já atribuídos via duplas para cada colaboradora
+      clientDupla.forEach(dIdx => {
+        if (dIdx < 0) return;
+        const d = duplasValidas[dIdx];
+        colabCarga[d.colabA_id] = (colabCarga[d.colabA_id] || 0) + 1;
+        colabCarga[d.colabB_id] = (colabCarga[d.colabB_id] || 0) + 1;
+      });
+
+      clState
+        .map((cs, idx) => ({ cs, idx }))
+        .filter(({ cs, idx }) => cs.atend.hora_fixa && clientDupla[idx] === -1 && cs.pendentes.length > 0)
+        .sort((a, b) => a.cs.livre - b.cs.livre)
+        .forEach(({ cs, idx }) => {
+          const svNomes = [...new Set(cs.pendentes.map(p => p.nome))];
+          // Escolhe a colaboradora elegível com menor carga atual
+          const eligiveis = state.colabsEvento
+            .filter(c => {
+              const svs = c.servicos || [];
+              return svNomes.some(n => svs.length === 0 || svs.includes(n));
+            })
+            .sort((a, b) => (colabCarga[a.id] || 0) - (colabCarga[b.id] || 0));
+          if (eligiveis.length === 0) return;
+          const chosen = eligiveis[0];
+          horaFixaPreAssigned.set(idx, chosen.id);
+          colabCarga[chosen.id] = (colabCarga[chosen.id] || 0) + 1;
+        });
+    }
+
+    // Após cada slot de dupla, serve o próximo cliente hora_fixa pré-atribuído
+    // a esta colaboradora cujo horário fixo já chegou (no máximo 1 por chamada)
+    const serveHoraFixaDupla = (colabId, colabNome, svNames, currentT) => {
+      let best = null;
+      for (const [idx, assignedId] of horaFixaPreAssigned) {
+        if (assignedId !== colabId) continue;
+        const cs = clState[idx];
+        if (cs.pendentes.length === 0 || cs.livre > currentT) continue;
+        const svIdx = cs.pendentes.findIndex(p => svNames.length === 0 || svNames.includes(p.nome));
+        if (svIdx < 0) continue;
+        if (!best || cs.livre < best.cs.livre) best = { cs, svIdx };
+      }
+      if (!best) return currentT;
+      const sv = best.cs.pendentes[best.svIdx];
+      const f = currentT + getDuracao(sv.nome);
+      doAssign(sv, colabId, colabNome, currentT, f);
+      best.cs.livre = f; best.cs.pendentes.splice(best.svIdx, 1); best.cs.agendados++; agendados++;
+      return f;
+    };
+
+    // Processar cada dupla com seus clientes designados
+    duplasValidas.forEach((d, dIdx) => {
+      const colabAev = state.colabsEvento.find(c => c.id === d.colabA_id);
+      const colabBev = state.colabsEvento.find(c => c.id === d.colabB_id);
+      const svNamesA = colabAev.servicos || [];
+      const svNamesB = colabBev.servicos || [];
+      const pairIdxs = clState.map((_, i) => i).filter(i => clientDupla[i] === dIdx);
+      // Processa clientes em ordem de disponibilidade para não atrasar o início da dupla
+      pairIdxs.sort((a, b) => clState[a].livre - clState[b].livre);
+
+      let tA = colabFreeTime[d.colabA_id];
+      let tB = colabFreeTime[d.colabB_id];
+
+      for (let i = 0; i < pairIdxs.length; i += 2) {
+        const cs1 = clState[pairIdxs[i]];
+        const cs2 = (i + 1 < pairIdxs.length) ? clState[pairIdxs[i + 1]] : null;
+
+        if (cs2) {
+          // Slot 1 (paralelo): colabA → cs1.svA  |  colabB → cs2.svB
+          const t1 = Math.max(tA, tB, cs1.livre, cs2.livre);
+          const sv1A_i = cs1.pendentes.findIndex(p => svNamesA.length === 0 || svNamesA.includes(p.nome));
+          const sv2B_i = cs2.pendentes.findIndex(p => svNamesB.length === 0 || svNamesB.includes(p.nome));
+          if (sv1A_i >= 0) {
+            const sv = cs1.pendentes[sv1A_i]; const f = t1 + getDuracao(sv.nome);
+            doAssign(sv, d.colabA_id, colabAev.nome, t1, f);
+            cs1.livre = f; cs1.pendentes.splice(sv1A_i, 1); cs1.agendados++; agendados++; tA = f;
+          }
+          if (sv2B_i >= 0) {
+            const sv = cs2.pendentes[sv2B_i]; const f = t1 + getDuracao(sv.nome);
+            doAssign(sv, d.colabB_id, colabBev.nome, t1, f);
+            cs2.livre = f; cs2.pendentes.splice(sv2B_i, 1); cs2.agendados++; agendados++; tB = f;
+          }
+          // Slot 2 (cruzado): colabA → cs2.svA  |  colabB → cs1.svB
+          const t2 = Math.max(tA, tB, cs1.livre, cs2.livre);
+          const sv2A_i = cs2.pendentes.findIndex(p => svNamesA.length === 0 || svNamesA.includes(p.nome));
+          const sv1B_i = cs1.pendentes.findIndex(p => svNamesB.length === 0 || svNamesB.includes(p.nome));
+          if (sv2A_i >= 0) {
+            const sv = cs2.pendentes[sv2A_i]; const f = t2 + getDuracao(sv.nome);
+            doAssign(sv, d.colabA_id, colabAev.nome, t2, f);
+            cs2.livre = f; cs2.pendentes.splice(sv2A_i, 1); cs2.agendados++; agendados++; tA = f;
+          }
+          if (sv1B_i >= 0) {
+            const sv = cs1.pendentes[sv1B_i]; const f = t2 + getDuracao(sv.nome);
+            doAssign(sv, d.colabB_id, colabBev.nome, t2, f);
+            cs1.livre = f; cs1.pendentes.splice(sv1B_i, 1); cs1.agendados++; agendados++; tB = f;
+          }
+          // Após slot 2: encaixar hora_fixa aguardando
+          tA = serveHoraFixaDupla(d.colabA_id, colabAev.nome, svNamesA, tA);
+          tB = serveHoraFixaDupla(d.colabB_id, colabBev.nome, svNamesB, tB);
+        } else {
+          // Cliente ímpar: colabA primeiro, depois colabB
+          const t1 = Math.max(tA, cs1.livre);
+          const sv1A_i = cs1.pendentes.findIndex(p => svNamesA.length === 0 || svNamesA.includes(p.nome));
+          if (sv1A_i >= 0) {
+            const sv = cs1.pendentes[sv1A_i]; const f = t1 + getDuracao(sv.nome);
+            doAssign(sv, d.colabA_id, colabAev.nome, t1, f);
+            cs1.livre = f; cs1.pendentes.splice(sv1A_i, 1); cs1.agendados++; agendados++; tA = f;
+          }
+          const t2 = Math.max(tB, cs1.livre);
+          const sv1B_i = cs1.pendentes.findIndex(p => svNamesB.length === 0 || svNamesB.includes(p.nome));
+          if (sv1B_i >= 0) {
+            const sv = cs1.pendentes[sv1B_i]; const f = t2 + getDuracao(sv.nome);
+            doAssign(sv, d.colabB_id, colabBev.nome, t2, f);
+            cs1.livre = f; cs1.pendentes.splice(sv1B_i, 1); cs1.agendados++; agendados++; tB = f;
+          }
+          // Após cliente ímpar: encaixar hora_fixa aguardando
+          tA = serveHoraFixaDupla(d.colabA_id, colabAev.nome, svNamesA, tA);
+          tB = serveHoraFixaDupla(d.colabB_id, colabBev.nome, svNamesB, tB);
+        }
+      }
+
+      colabFreeTime[d.colabA_id] = tA;
+      colabFreeTime[d.colabB_id] = tB;
+    });
+  }
+
+  // ====== LOOP PRINCIPAL: serviços restantes (não cobertos pelas duplas) ======
+  const fila = state.colabsEvento.map(c => ({ tempo: colabFreeTime[c.id], colabId: c.id }));
+  const seguranca = totalServicos * state.colabsEvento.length * 4;
+  let iter = 0;
+
+  while (fila.length > 0 && agendados < totalServicos && iter++ < seguranca) {
+    fila.sort((a, b) => a.tempo - b.tempo);
+    const { tempo: tColab, colabId } = fila.shift();
+    const colab = state.colabsEvento.find(c => c.id === colabId);
+    const colabSvs = colab.servicos || [];
+
+    let melhor = null, melhorScore = -Infinity;
+    clState.forEach((cs, csIdx) => {
+      cs.pendentes.forEach((sv, svIdx) => {
+        if (colabSvs.length > 0 && !colabSvs.includes(sv.nome)) return;
+        const inicio = Math.max(tColab, cs.livre);
+        const emProgresso = cs.agendados > 0;
+        const prontoAgora = cs.livre <= tColab;
+        const horaFixaAtivada = cs.atend.hora_fixa && cs.livre <= tColab;
+        const score = (emProgresso && prontoAgora ? 10_000_000 : 0) +
+                      (horaFixaAtivada ? 5_000_000 : 0) +
+                      cs.pendentes.length * 10_000 - inicio;
+        if (score > melhorScore) { melhorScore = score; melhor = { csIdx, svIdx, sv, inicio }; }
+      });
+    });
+
+    if (!melhor) {
+      let proxLivre = Infinity;
+      clState.forEach(cs => cs.pendentes.forEach(sv => {
+        if (colabSvs.length === 0 || colabSvs.includes(sv.nome)) {
+          if (cs.livre > tColab) proxLivre = Math.min(proxLivre, cs.livre);
+        }
+      }));
+      if (proxLivre < Infinity) fila.push({ tempo: proxLivre, colabId });
+      continue;
+    }
+
+    const { csIdx, svIdx, sv, inicio } = melhor;
+    const fim = inicio + getDuracao(sv.nome);
+    doAssign(sv, colabId, colab.nome, inicio, fim);
+    clState[csIdx].livre = fim;
+    clState[csIdx].pendentes.splice(svIdx, 1);
+    clState[csIdx].agendados++;
+    agendados++;
+    fila.push({ tempo: fim, colabId });
+  }
+
+  // Atualizar campos auxiliares dos atendimentos com o primeiro serviço agendado
+  state.atendimentosEvento.forEach(atend => {
+    const agendados2 = (atend.servicos || []).filter(sv => sv.hora_inicio);
+    if (agendados2.length === 0) return;
+    agendados2.sort((a, b) => tempoParaMinutos(a.hora_inicio) - tempoParaMinutos(b.hora_inicio));
+    const primeiro = agendados2[0];
+    atend.hora_sugerida = primeiro.hora_inicio;
+    atend.colab_id = primeiro.colab_id;
+    atend.colab_nome = primeiro.colab_nome;
+    const colab = state.colaboradoras.find(c => c.id === primeiro.colab_id);
+    if (colab && !atend.comissao_pct) atend.comissao_pct = colab.comissao_padrao;
+  });
+
+  renderAtendimentosForm();
+  renderCronograma();
+  toast('Distribuição realizada! ✓');
+}
+
+function renderCronograma() {
+  const container = document.getElementById('cronograma-container');
+  if (!container) return;
+
+  // agrupa slots por colaboradora
+  const porColab = {};
+  state.atendimentosEvento.forEach((atend, atendIdx) => {
+    (atend.servicos || []).forEach((sv, svIdx) => {
+      if (!sv.hora_inicio || !sv.colab_id) return;
+      if (!porColab[sv.colab_id]) porColab[sv.colab_id] = { nome: sv.colab_nome, slots: [] };
+      porColab[sv.colab_id].slots.push({
+        cliente: atend.cliente_nome || `Cliente ${atendIdx+1}`,
+        servico: sv.nome, hora_inicio: sv.hora_inicio, hora_fim: sv.hora_fim,
+        atendIdx, svIdx
+      });
+    });
+  });
+
+  const colabs = Object.values(porColab).filter(c => c.slots.length > 0);
+  if (colabs.length === 0) { container.style.display = 'none'; return; }
+
+  colabs.forEach(c => c.slots.sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio)));
+  container.style.display = 'block';
+
+  const CORES = ['var(--rosa)', 'var(--verde)', 'var(--dourado)', '#7c6db5', '#d97706'];
+  container.innerHTML = `
+    <hr class="separador">
+    <div style="font-weight:500;font-size:14px;margin-bottom:14px;">📅 Cronograma de atendimentos</div>
+    ${colabs.map((c, ci) => {
+      const cor = CORES[ci % CORES.length];
+      const bg = cor === 'var(--rosa)' ? 'var(--rosa-light)' : cor === 'var(--verde)' ? 'var(--verde-light)' : 'var(--dourado-light)';
+      return `
+      <div style="margin-bottom:16px;">
+        <div style="font-size:12px;font-weight:600;color:${cor};text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;">${c.nome}</div>
+        ${c.slots.map(s => `
+          <div onclick="editarSlotCronograma(${s.atendIdx},${s.svIdx})"
+            style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:${bg};border-left:3px solid ${cor};border-radius:0 ${getComputedStyle(document.documentElement).getPropertyValue('--radius-sm')||'8px'} ${getComputedStyle(document.documentElement).getPropertyValue('--radius-sm')||'8px'} 0;margin-bottom:6px;cursor:pointer;">
+            <div style="font-size:12px;font-weight:600;color:${cor};white-space:nowrap;min-width:100px;">${s.hora_inicio} – ${s.hora_fim}</div>
+            <div style="flex:1;">
+              <div style="font-size:14px;font-weight:500;">${s.cliente}</div>
+              <div style="font-size:11px;color:var(--texto-sec);">${s.servico}</div>
+            </div>
+            <div style="font-size:13px;color:var(--texto-sec);">✏️</div>
+          </div>
+        `).join('')}
+      </div>`;
+    }).join('')}
+    <button class="btn btn-outline btn-sm" style="width:100%;justify-content:center;margin-top:4px;" onclick="abrirLinhaTempo()">📋 Ver cronograma por cliente</button>
+    <button class="btn btn-outline btn-sm" style="width:100%;justify-content:center;margin-top:4px;" onclick="exportarCronogramaExcel()">📊 Baixar Excel (grade por colaboradora)</button>
+  `;
+}
+
+function gerarHtmlCronogramaDetalhe(ev) {
+  const porColab = {};
+  (ev.atendimentos||[]).forEach(a => {
+    (a.servicos||[]).forEach(sv => {
+      if (!sv.hora_inicio || !sv.colab_id) return;
+      if (!porColab[sv.colab_id]) porColab[sv.colab_id] = { nome: sv.colab_nome, slots: [] };
+      porColab[sv.colab_id].slots.push({ cliente: a.cliente_nome, servico: sv.nome, hora_inicio: sv.hora_inicio, hora_fim: sv.hora_fim });
+    });
+  });
+  const colabs = Object.values(porColab).filter(c => c.slots.length > 0);
+  if (colabs.length === 0) return '';
+  colabs.forEach(c => c.slots.sort((a,b) => a.hora_inicio.localeCompare(b.hora_inicio)));
+  const CORES = ['var(--rosa)', 'var(--verde)', 'var(--dourado)', '#7c6db5', '#d97706'];
+  return `
+    <div style="font-weight:500;font-size:14px;margin-bottom:12px;">📅 Cronograma</div>
+    ${colabs.map((c, ci) => {
+      const cor = CORES[ci % CORES.length];
+      const bg = cor === 'var(--rosa)' ? 'var(--rosa-light)' : cor === 'var(--verde)' ? 'var(--verde-light)' : 'var(--dourado-light)';
+      return `
+      <div style="margin-bottom:14px;">
+        <div style="font-size:12px;font-weight:600;color:${cor};text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px;">${c.nome}</div>
+        ${c.slots.map(s => `
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:${bg};border-left:3px solid ${cor};border-radius:0 8px 8px 0;margin-bottom:5px;">
+            <div style="font-size:12px;font-weight:600;color:${cor};white-space:nowrap;min-width:100px;">${s.hora_inicio} – ${s.hora_fim}</div>
+            <div>
+              <div style="font-size:14px;font-weight:500;">${s.cliente}</div>
+              <div style="font-size:11px;color:var(--texto-sec);">${s.servico}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>`;
+    }).join('')}
+  `;
+}
+
+function editarSlotCronograma(atendIdx, svIdx) {
+  const atend = state.atendimentosEvento[atendIdx];
+  const sv = atend.servicos[svIdx];
+  document.getElementById('slot-atend-idx').value = atendIdx;
+  document.getElementById('slot-sv-idx').value = svIdx;
+  document.getElementById('slot-info').textContent = `${atend.cliente_nome || 'Cliente '+(atendIdx+1)} — ${sv.nome}`;
+  document.getElementById('slot-hora-inicio').value = sv.hora_inicio || '';
+  document.getElementById('slot-hora-fim').value = sv.hora_fim || '';
+  const sel = document.getElementById('slot-colab-sel');
+  sel.innerHTML = state.colabsEvento.map(c =>
+    `<option value="${c.id}" ${sv.colab_id === c.id ? 'selected' : ''}>${c.nome}</option>`
+  ).join('');
+  abrirModal('modal-slot-cronograma');
+}
+
+function salvarSlotCronograma() {
+  const atendIdx = parseInt(document.getElementById('slot-atend-idx').value);
+  const svIdx = parseInt(document.getElementById('slot-sv-idx').value);
+  const colabId = document.getElementById('slot-colab-sel').value;
+  const horaInicio = document.getElementById('slot-hora-inicio').value;
+  const horaFim = document.getElementById('slot-hora-fim').value;
+  const colab = state.colabsEvento.find(c => c.id === colabId);
+  const sv = state.atendimentosEvento[atendIdx].servicos[svIdx];
+  sv.colab_id = colabId;
+  sv.colab_nome = colab?.nome || '';
+  sv.hora_inicio = horaInicio;
+  sv.hora_fim = horaFim;
+  const colabFull2 = state.colaboradoras.find(c => c.id === colabId);
+  if (colabFull2 && sv.comissao_pct === undefined) sv.comissao_pct = colabFull2.comissao_padrao || 0;
+  fecharModal('modal-slot-cronograma');
+  renderCronograma();
+  renderAtendimentosForm();
+}
+
+function removerAtendimento(idx) {
+  state.atendimentosEvento.splice(idx, 1);
+  renderAtendimentosForm();
+}
+
+function toggleDeslocamento(checked) {
+  document.getElementById('ev-deslocamento-valor-box').style.display = checked ? 'block' : 'none';
+  if (!checked) document.getElementById('ev-deslocamento-valor').value = '';
+}
+
+// ==================== CLIENTES ====================
+function renderClientes(busca='') {
+  let lista = state.clientes;
+  if (busca) lista = lista.filter(c => c.nome.toLowerCase().includes(busca.toLowerCase()));
+  const container = document.getElementById('lista-clientes');
+  if (lista.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-text">Nenhuma cliente cadastrada</div></div>`;
+    return;
+  }
+  container.innerHTML = `<div class="card">` + lista.map(c => {
+    const ats = state.eventos.flatMap(e => (e.atendimentos||[]).filter(a => a.cliente_id === c.id));
+    const total = ats.reduce((s,a) => s+(a.valor||0), 0);
+    return `
+    <div class="lista-item">
+      <div class="avatar">${c.nome.charAt(0).toUpperCase()}</div>
+      <div class="lista-info">
+        <div class="lista-nome">${c.nome}</div>
+        <div class="lista-sub">${c.telefone||''} · ${ats.length} atend. · R$ ${total.toFixed(2)}</div>
+      </div>
+    </div>`;
+  }).join('') + '</div>';
+}
+
+function buscarClientes(v) { renderClientes(v); }
+
+function abrirModalCliente() {
+  document.getElementById('cl-nome').value = '';
+  document.getElementById('cl-tel').value = '';
+  document.getElementById('cl-email').value = '';
+  abrirModal('modal-cliente');
+}
+
+async function salvarCliente() {
+  const nome = document.getElementById('cl-nome').value.trim();
+  if (!nome) { toast('Informe o nome da cliente'); return; }
+  const cl = { nome, telefone: document.getElementById('cl-tel').value, email: document.getElementById('cl-email').value };
+  const r = await salvarNoBD('clientes', cl);
+  if (r.data && r.data[0]) {
+    cl.id = r.data[0].id;
+    state.clientes.push(cl);
+    toast('Cliente salva!');
+    fecharModal('modal-cliente');
+    renderClientes();
+    renderColabSelect();
+  }
+}
+
+// ==================== COLABORADORAS ====================
+function renderColaboradoras() {
+  const container = document.getElementById('lista-colaboradoras');
+  if (state.colaboradoras.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">💅</div><div class="empty-text">Nenhuma colaboradora cadastrada</div></div>`;
+    return;
+  }
+  container.innerHTML = state.colaboradoras.map(c => {
+    const totalComissao = state.eventos.reduce((tot, e) =>
+      tot + (e.atendimentos||[]).reduce((t2, a) =>
+        t2 + (a.servicos||[]).reduce((t3, sv) =>
+          sv.colab_id === c.id ? t3+(sv.valor||0)*(sv.comissao_pct||0)/100 : t3, 0), 0), 0);
+    return `
+    <div class="comissao-card">
+      <div class="comissao-header">
+        <div>
+          <div style="font-weight:500;font-size:16px;">${c.nome}</div>
+          <div style="font-size:13px;color:var(--texto-sec);">${c.telefone||''} · Comissão padrão: ${c.comissao_padrao||0}%</div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="editarColaboradora('${c.id}')">Editar</button>
+      </div>
+
+      ${c.pix ? `
+      <div class="pix-box">
+        <span class="pix-chave">PIX: ${c.pix}</span>
+        <button class="btn-copiar" onclick="copiarPix('${c.pix}')">Copiar</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function abrirModalColaboradora() {
+  state.colabEditandoId = null;
+  document.getElementById('modal-colab-titulo').textContent = 'Nova Colaboradora';
+  ['colab-nome','colab-tel','colab-comissao','colab-pix'].forEach(id => document.getElementById(id).value = '');
+  abrirModal('modal-colaboradora');
+}
+
+function editarColaboradora(id) {
+  const c = state.colaboradoras.find(c => c.id === id);
+  if (!c) return;
+  state.colabEditandoId = id;
+  document.getElementById('modal-colab-titulo').textContent = 'Editar Colaboradora';
+  document.getElementById('colab-nome').value = c.nome;
+  document.getElementById('colab-tel').value = c.telefone || '';
+  document.getElementById('colab-comissao').value = c.comissao_padrao || '';
+  document.getElementById('colab-pix').value = c.pix || '';
+  abrirModal('modal-colaboradora');
+}
+
+async function salvarColaboradora() {
+  const nome = document.getElementById('colab-nome').value.trim();
+  if (!nome) { toast('Informe o nome'); return; }
+  const dados = {
+    nome,
+    telefone: document.getElementById('colab-tel').value,
+    comissao_padrao: parseFloat(document.getElementById('colab-comissao').value) || 0,
+    pix: document.getElementById('colab-pix').value,
+  };
+  if (state.colabEditandoId) {
+    const idx = state.colaboradoras.findIndex(c => c.id === state.colabEditandoId);
+    state.colaboradoras[idx] = {...state.colaboradoras[idx], ...dados};
+    await atualizarNoBD('colaboradoras', state.colabEditandoId, dados);
+    toast('Colaboradora atualizada!');
+  } else {
+    const r = await salvarNoBD('colaboradoras', dados);
+    if (r.data && r.data[0]) { dados.id = r.data[0].id; state.colaboradoras.push(dados); }
+    toast('Colaboradora salva!');
+  }
+  fecharModal('modal-colaboradora');
+  renderColaboradoras();
+  renderColabSelect();
+}
+
+function copiarPix(chave) {
+  navigator.clipboard.writeText(chave).then(() => toast('Chave PIX copiada! ✓')).catch(() => toast('Chave: ' + chave));
+}
+
+// ==================== PAGAMENTOS ====================
+function abrirModalPagamento(eventoId, atendIdx) {
+  document.getElementById('pag-evento-id').value = eventoId;
+  document.getElementById('pag-atend-idx').value = atendIdx;
+  const ev = state.eventos.find(e => e.id === eventoId);
+  const a = ev?.atendimentos[atendIdx];
+  const titulo = a ? `Pagamento — ${a.cliente_nome}` : 'Registrar Pagamento';
+  document.getElementById('modal-pag-titulo').textContent = titulo;
+  document.getElementById('pag-valor').value = a ? (a.valor || '') : '';
+  abrirModal('modal-pagamento');
+}
+
+async function salvarPagamento() {
+  const eventoId = document.getElementById('pag-evento-id').value;
+  const idx = parseInt(document.getElementById('pag-atend-idx').value);
+  const valor = parseFloat(document.getElementById('pag-valor').value) || 0;
+  const tipo = document.getElementById('pag-tipo').value;
+  const forma = document.getElementById('pag-forma').value;
+  if (!valor) { toast('Informe o valor'); return; }
+  const ev = state.eventos.find(e => e.id === eventoId);
+  if (!ev) return;
+  ev.atendimentos[idx].pagamentos = ev.atendimentos[idx].pagamentos || [];
+  ev.atendimentos[idx].pagamentos.push({tipo, valor, forma, data: new Date().toISOString()});
+  await atualizarNoBD('eventos', eventoId, {atendimentos: ev.atendimentos});
+  toast('Pagamento registrado!');
+  fecharModal('modal-pagamento');
+  renderFinanceiro();
+  abrirDetalheEvento(eventoId);
+}
+
+// ==================== FINANCEIRO ====================
+function inicializarFiltroMes() {
+  const sel = document.getElementById('fin-mes-sel');
+  if (!sel) return;
+  if (sel.options.length > 0) return; // Já inicializado, não reinicia
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const agora = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(agora.getFullYear(), agora.getMonth() - i, 1);
+    const val = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const label = `${meses[d.getMonth()]} ${d.getFullYear()}`;
+    const opt = document.createElement('option');
+    opt.value = val; opt.textContent = label;
+    if (i === 0) opt.selected = true;
+    sel.appendChild(opt);
+  }
+}
+
+function renderFinanceiro() {
+  inicializarFiltroMes();
+  const sel = document.getElementById('fin-mes-sel');
+  const mesSel = sel ? sel.value : `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+  const [anoSel, mesSel2] = mesSel.split('-').map(Number);
+  const evsMes = state.eventos.filter(e => {
+    const [ano,mes] = e.data.split('-');
+    return parseInt(ano) === anoSel && parseInt(mes) === mesSel2;
+  });
+  let total=0, comissoes=0, recebido=0;
+  const formas = {};
+  evsMes.forEach(ev => {
+    total += ev.deslocamento || 0;
+    recebido += ev.deslocamento || 0;
+    (ev.atendimentos||[]).forEach(a => {
+      total += a.valor||0;
+      (a.servicos||[]).forEach(sr => {
+        total += sr.valor||0;
+        comissoes += (sr.valor||0)*(sr.comissao_pct||0)/100;
+      });
+      (a.pagamentos||[]).forEach(p => {
+        recebido += p.valor||0;
+        formas[p.forma] = (formas[p.forma]||0) + p.valor;
+      });
+    });
+  });
+  const pendente = total - recebido;
+  const liquido = recebido - comissoes;
+  document.getElementById('fin-total').textContent = `R$ ${recebido.toFixed(2)}`;
+  document.getElementById('fin-liquido').textContent = `R$ ${liquido.toFixed(2)}`;
+  document.getElementById('fin-comissoes').textContent = `R$ ${comissoes.toFixed(2)}`;
+  document.getElementById('fin-pendente').textContent = `R$ ${pendente.toFixed(2)}`;
+
+  // Monta comissões por colaboradora com detalhe por evento
+  const porColabPendente = {};
+  const porColabPago = {};
+  evsMes.forEach(ev => {
+    const [ano,mes,dia] = ev.data.split('-');
+    const dataLabel = `${dia}/${mes}/${ano}`;
+    (ev.atendimentos||[]).forEach(a => {
+      (a.servicos||[]).forEach(sv => {
+        if (!sv.colab_id || !(sv.valor > 0)) return;
+        const valComissao = (sv.valor||0)*(sv.comissao_pct||0)/100;
+        if (valComissao <= 0) return;
+        const pagoKey = `comissao_paga_${sv.colab_id}_${ev.id}_${mesSel}`;
+        const pago = state.pagamentosConfirmados[pagoKey] === true;
+        const colab = state.colaboradoras.find(c => c.id === sv.colab_id);
+        const target = pago ? porColabPago : porColabPendente;
+        if (!target[sv.colab_id]) {
+          target[sv.colab_id] = {id: sv.colab_id, nome: sv.colab_nome, pix: colab?.pix||'', total:0, eventos:[]};
+        }
+        target[sv.colab_id].total += valComissao;
+        target[sv.colab_id].eventos.push({
+          eventoId: ev.id, eventoNome: ev.nome, dataLabel, valComissao, pagoKey, pago,
+          clienteNome: a.cliente_nome, servico: sv.nome
+        });
+      });
+    });
+  });
+
+  // Render pendentes
+  const renderCardColab = (c, isPago) => `
+    <div style="border:1px solid var(--cinza-borda);border-radius:var(--radius-sm);padding:12px;margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="font-weight:500;font-size:15px;">${c.nome}</span>
+        <span style="font-weight:500;color:${isPago?'var(--verde)':'var(--rosa)'};">R$ ${c.total.toFixed(2)}</span>
+      </div>
+      ${c.eventos.map(e => `
+        <div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-top:1px solid var(--cinza-borda);">
+          <span style="color:var(--texto-sec);">${e.dataLabel} · ${e.eventoNome}<br><span style="color:var(--texto-sec);">${e.clienteNome||''} · ${e.servico||''}</span></span>
+          <span style="font-weight:500;white-space:nowrap;margin-left:8px;">R$ ${e.valComissao.toFixed(2)}</span>
+        </div>
+      `).join('')}
+      ${c.pix ? `<div class="pix-box" style="margin-top:10px;"><span class="pix-chave">${c.pix}</span><button class="btn-copiar" onclick="copiarPix('${c.pix}')">Copiar PIX</button></div>` : ''}
+      <button class="btn ${isPago?'btn-outline':'btn-success'} btn-sm" style="width:100%;justify-content:center;margin-top:10px;"
+        onclick="confirmarComissaoColab('${c.id}','${mesSel}',${isPago?'false':'true'})">
+        ${isPago ? '↩ Desfazer pagamento' : '✓ Confirmar pagamento'}
+      </button>
+    </div>`;
+
+  const pendentesEl = document.getElementById('comissoes-pendentes');
+  const pagosEl = document.getElementById('comissoes-pagas');
+  pendentesEl.innerHTML = Object.values(porColabPendente).length === 0
+    ? '<div style="color:var(--texto-sec);font-size:13px;">Nenhuma comissão pendente 🎉</div>'
+    : Object.values(porColabPendente).map(c => renderCardColab(c, false)).join('');
+  pagosEl.innerHTML = Object.values(porColabPago).length === 0
+    ? '<div style="color:var(--texto-sec);font-size:13px;">Nenhuma comissão paga neste período</div>'
+    : Object.values(porColabPago).map(c => renderCardColab(c, true)).join('');
+
+  // Histórico por colaboradora (todos os meses)
+  const histEl = document.getElementById('historico-colaboradoras');
+  const histPorColab = {};
+  state.colaboradoras.forEach(c => { histPorColab[c.id] = {nome: c.nome, meses: {}}; });
+  state.eventos.forEach(ev => {
+    const [ano, mesEv] = ev.data.split('-');
+    const chMes = `${ano}-${mesEv}`;
+    (ev.atendimentos||[]).forEach(a => {
+      (a.servicos||[]).forEach(sv => {
+        if (!sv.colab_id || !histPorColab[sv.colab_id] || !(sv.valor > 0)) return;
+        const pagoKey = `comissao_paga_${sv.colab_id}_${ev.id}_${chMes}`;
+        if (state.pagamentosConfirmados[pagoKey] === true) {
+          if (!histPorColab[sv.colab_id].meses[chMes]) histPorColab[sv.colab_id].meses[chMes] = 0;
+          histPorColab[sv.colab_id].meses[chMes] += (sv.valor||0)*(sv.comissao_pct||0)/100;
+        }
+      });
+    });
+  });
+  const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  histEl.innerHTML = Object.values(histPorColab).filter(c => Object.keys(c.meses).length > 0).map(c => `
+    <div style="margin-bottom:14px;">
+      <div style="font-weight:500;margin-bottom:6px;">${c.nome}</div>
+      ${Object.entries(c.meses).sort().map(([m, v]) => {
+        const [a, ms] = m.split('-');
+        return `<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid var(--cinza-borda);">
+          <span style="color:var(--texto-sec);">${meses[parseInt(ms)-1]} ${a}</span>
+          <span style="color:var(--verde);font-weight:500;">R$ ${v.toFixed(2)}</span>
+        </div>`;
+      }).join('')}
+    </div>
+  `).join('') || '<div style="color:var(--texto-sec);font-size:13px;">Nenhum pagamento confirmado ainda</div>';
+
+  // Gráfico formas de pagamento
+  const maxVal = Math.max(...Object.values(formas), 1);
+  document.getElementById('grafico-pagamentos').innerHTML = Object.entries(formas).map(([forma, val]) => `
+    <div class="grafico-barra">
+      <div class="barra-label"><span>${forma}</span><span>R$ ${val.toFixed(2)}</span></div>
+      <div class="barra-bg"><div class="barra-fill" style="width:${Math.round(val/maxVal*100)}%"></div></div>
+    </div>
+  `).join('') || '<div style="color:var(--texto-sec);font-size:13px;">Nenhum pagamento no período</div>';
+}
+
+async function confirmarComissaoColab(colabId, mes, pagoStr) {
+  const pago = (pagoStr === 'true' || pagoStr === true);
+  const [anoSel, mesSel2] = mes.split('-').map(Number);
+  const batch = db.batch();
+  state.eventos.forEach(ev => {
+    const [ano, m] = ev.data.split('-');
+    if (parseInt(ano) !== anoSel || parseInt(m) !== mesSel2) return;
+    const pagoKeysEv = new Set();
+    (ev.atendimentos||[]).forEach(a => {
+      (a.servicos||[]).forEach(sv => {
+        if (sv.colab_id !== colabId || !(sv.valor > 0)) return;
+        const pagoKey = `comissao_paga_${colabId}_${ev.id}_${mes}`;
+        if (pagoKeysEv.has(pagoKey)) return;
+        pagoKeysEv.add(pagoKey);
+        state.pagamentosConfirmados[pagoKey] = pago;
+        batch.set(db.collection('pagamentos_confirmados').doc(pagoKey), { pago });
+      });
+    });
+  });
+  try { await batch.commit(); } catch(e) { console.log('Erro ao salvar comissão:', e); }
+  toast(pago ? 'Comissão marcada como paga! ✓' : 'Pagamento desfeito');
+  renderFinanceiro();
+}
+
+// ==================== SERVIÇOS ====================
+function renderServicos() {
+  const container = document.getElementById('lista-servicos');
+  if (!container) return;
+  if (state.servicos.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">✂️</div><div class="empty-text">Nenhum serviço cadastrado</div></div>`;
+    return;
+  }
+  container.innerHTML = `<div class="card">` + state.servicos.map((s, idx) => `
+    <div class="lista-item">
+      <div class="avatar" style="background:var(--rosa-light);color:var(--rosa);">✂</div>
+      <div class="lista-info">
+        <div class="lista-nome">${s.nome}</div>
+      </div>
+      <button onclick="excluirServico(${idx})" style="background:none;border:none;color:#dc2626;cursor:pointer;padding:8px;font-size:18px;">✕</button>
+    </div>
+  `).join('') + `</div>`;
+}
+
+function abrirModalServico() {
+  document.getElementById('srv-nome').value = '';
+  abrirModal('modal-servico');
+}
+
+async function salvarServico() {
+  const nome = document.getElementById('srv-nome').value.trim();
+  if (!nome) { toast('Informe o nome do serviço'); return; }
+  if (state.servicos.find(s => s.nome.toLowerCase() === nome.toLowerCase())) { toast('Serviço já cadastrado'); return; }
+  try {
+    const ref = await db.collection('servicos').add({ nome });
+    state.servicos.push({ id: ref.id, nome });
+    toast('Serviço salvo!');
+    fecharModal('modal-servico');
+    renderServicos();
+  } catch(e) { toast('Erro ao salvar serviço'); }
+}
+
+async function excluirServico(idx) {
+  if (!confirm('Excluir este serviço?')) return;
+  const sv = state.servicos[idx];
+  try {
+    if (sv.id) await db.collection('servicos').doc(sv.id).delete();
+  } catch(e) { console.log('Erro ao excluir serviço:', e); }
+  state.servicos.splice(idx, 1);
+  renderServicos();
+  toast('Serviço removido');
+}
+
+function abrirSelServicos(atendIdx) {
+  state.selServicosAtendIdx = atendIdx;
+  const a = state.atendimentosEvento[atendIdx];
+  const container = document.getElementById('sel-servicos-lista');
+  if (state.servicos.length === 0) {
+    fecharModal('modal-sel-servicos');
+    toast('Cadastre serviços na aba Serviços primeiro!');
+    return;
+  }
+  container.innerHTML = state.servicos.map(s => {
+    const jaSel = (a.servicos||[]).find(sv => sv.nome === s.nome);
+    return `
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--cinza-borda);">
+      <input type="checkbox" ${jaSel?'checked':''} id="chk-srv-${s.nome.replace(/\s/g,'_')}"
+        style="width:20px;height:20px;accent-color:var(--rosa);flex-shrink:0;"
+        onchange="toggleServicoSel('${s.nome}',this.checked)">
+      <label for="chk-srv-${s.nome.replace(/\s/g,'_')}" style="font-size:15px;cursor:pointer;flex:1;">${s.nome}</label>
+    </div>`;
+  }).join('');
+  abrirModal('modal-sel-servicos');
+}
+
+function toggleServicoSel(nomeServico, checked) {
+  const idx = state.selServicosAtendIdx;
+  if (!state.atendimentosEvento[idx].servicos) state.atendimentosEvento[idx].servicos = [];
+  if (checked) {
+    if (!state.atendimentosEvento[idx].servicos.find(s => s.nome === nomeServico)) {
+      state.atendimentosEvento[idx].servicos.push({nome: nomeServico, valor: 0});
+    }
+  } else {
+    state.atendimentosEvento[idx].servicos = state.atendimentosEvento[idx].servicos.filter(s => s.nome !== nomeServico);
+  }
+  renderAtendimentosForm();
+}
+
+// ==================== INIT ====================
+document.addEventListener('DOMContentLoaded', () => {
+  verificarTokenGoogle();
+  carregarDados().then(() => {
+    renderCalendario();
+    renderColabSelect();
+    document.getElementById('ev-data').value = formatData(new Date());
+  });
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('aberto'); });
+  });
+});
+</script>
+</body>
+</html>

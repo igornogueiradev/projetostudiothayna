@@ -1,0 +1,1760 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Studio Thayna</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --rosa: #c8697a;
+    --rosa-light: #f7e8eb;
+    --rosa-dark: #a04f5e;
+    --dourado: #c9a96e;
+    --dourado-light: #fdf6ec;
+    --verde: #4a9e7c;
+    --verde-light: #e8f5ef;
+    --cinza: #6b6b6b;
+    --cinza-light: #f5f5f5;
+    --cinza-borda: #e0e0e0;
+    --branco: #ffffff;
+    --texto: #2c2c2c;
+    --texto-sec: #888;
+    --sombra: 0 2px 12px rgba(0,0,0,0.08);
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'DM Sans', sans-serif; background: #f8f4f5; color: var(--texto); min-height: 100vh; }
+
+  /* HEADER */
+  .header { background: var(--branco); border-bottom: 1px solid var(--cinza-borda); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .header-logo { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--rosa); letter-spacing: 0.5px; }
+  .header-sub { font-size: 11px; color: var(--texto-sec); margin-top: 1px; }
+  .header-right { display: flex; gap: 8px; }
+
+  /* NAV BOTTOM */
+  .nav-bottom { position: fixed; bottom: 0; left: 0; right: 0; background: var(--branco); border-top: 1px solid var(--cinza-borda); display: flex; z-index: 100; padding-bottom: env(safe-area-inset-bottom); }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 8px 2px 6px; cursor: pointer; transition: color 0.2s; color: var(--texto-sec); font-size: 9px; gap: 3px; border: none; background: none; }
+  .nav-item.active { color: var(--rosa); }
+  .nav-item svg { width: 22px; height: 22px; }
+
+  /* MAIN */
+  .main { padding: 16px 16px 90px; max-width: 480px; margin: 0 auto; }
+
+  /* TELA */
+  .tela { display: none; }
+  .tela.ativa { display: block; }
+
+  /* CARDS */
+  .card { background: var(--branco); border-radius: var(--radius); box-shadow: var(--sombra); padding: 16px; margin-bottom: 12px; }
+  .card-titulo { font-family: 'Playfair Display', serif; font-size: 16px; margin-bottom: 12px; color: var(--texto); }
+
+  /* RESUMO FINANCEIRO */
+  .resumo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .resumo-item { background: var(--branco); border-radius: var(--radius-sm); padding: 14px; border: 1px solid var(--cinza-borda); }
+  .resumo-item.destaque { background: var(--rosa-light); border-color: var(--rosa); }
+  .resumo-label { font-size: 11px; color: var(--texto-sec); margin-bottom: 4px; }
+  .resumo-valor { font-size: 20px; font-weight: 500; color: var(--texto); }
+  .resumo-item.destaque .resumo-valor { color: var(--rosa-dark); }
+
+  /* BOTÕES */
+  .btn { padding: 12px 20px; border-radius: var(--radius-sm); border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+  .btn-primary { background: var(--rosa); color: white; width: 100%; justify-content: center; }
+  .btn-primary:active { background: var(--rosa-dark); transform: scale(0.98); }
+  .btn-outline { background: transparent; border: 1px solid var(--cinza-borda); color: var(--texto); }
+  .btn-outline:active { background: var(--cinza-light); }
+  .btn-sm { padding: 8px 14px; font-size: 13px; }
+  .btn-danger { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+  .btn-success { background: var(--verde-light); color: var(--verde); border: 1px solid #b7e5d0; }
+  .btn-fab { position: fixed; bottom: 80px; right: 20px; width: 52px; height: 52px; border-radius: 50%; background: var(--rosa); color: white; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 4px 16px rgba(200,105,122,0.4); display: flex; align-items: center; justify-content: center; z-index: 90; }
+
+  /* LISTA ITENS */
+  .lista-item { display: flex; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--cinza-borda); gap: 12px; cursor: pointer; }
+  .lista-item:last-child { border-bottom: none; }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--rosa-light); display: flex; align-items: center; justify-content: center; font-weight: 500; font-size: 15px; color: var(--rosa); flex-shrink: 0; }
+  .lista-info { flex: 1; min-width: 0; }
+  .lista-nome { font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lista-sub { font-size: 12px; color: var(--texto-sec); margin-top: 2px; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+  .badge-pago { background: var(--verde-light); color: var(--verde); }
+  .badge-sinal { background: var(--dourado-light); color: #a07830; }
+  .badge-pendente { background: #fee2e2; color: #dc2626; }
+
+  /* MODAL */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: flex-end; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+  .modal-overlay.aberto { opacity: 1; pointer-events: all; }
+  .modal { background: var(--branco); border-radius: 20px 20px 0 0; padding: 24px 20px; width: 100%; max-height: 92vh; overflow-y: auto; transform: translateY(100%); transition: transform 0.3s ease; }
+  .modal-overlay.aberto .modal { transform: translateY(0); }
+  .modal-titulo { font-family: 'Playfair Display', serif; font-size: 20px; margin-bottom: 20px; }
+  .modal-handle { width: 40px; height: 4px; background: var(--cinza-borda); border-radius: 2px; margin: 0 auto 20px; }
+
+  /* FORM */
+  .form-grupo { margin-bottom: 16px; }
+  .form-label { font-size: 12px; color: var(--texto-sec); margin-bottom: 6px; display: block; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+  .form-input { width: 100%; padding: 12px 14px; border: 1px solid var(--cinza-borda); border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 15px; color: var(--texto); background: var(--branco); transition: border-color 0.2s; }
+  .form-input:focus { outline: none; border-color: var(--rosa); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  select.form-input { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+
+  /* AGENDA */
+  .agenda-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .agenda-mes { font-family: 'Playfair Display', serif; font-size: 18px; }
+  .agenda-nav { display: flex; gap: 8px; }
+  .agenda-nav button { background: none; border: 1px solid var(--cinza-borda); border-radius: var(--radius-sm); padding: 6px 12px; cursor: pointer; color: var(--texto); font-size: 18px; }
+  .dias-semana { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; margin-bottom: 8px; }
+  .dia-semana-label { font-size: 11px; color: var(--texto-sec); font-weight: 500; padding: 4px 0; }
+  .calendario { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .dia-cel { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; font-size: 14px; position: relative; }
+  .dia-cel:hover { background: var(--rosa-light); }
+  .dia-cel.hoje { background: var(--rosa); color: white; font-weight: 500; }
+  .dia-cel.tem-evento::after { content: ''; position: absolute; bottom: 3px; width: 4px; height: 4px; border-radius: 50%; background: var(--rosa); }
+  .dia-cel.hoje.tem-evento::after { background: white; }
+  .dia-cel.outro-mes { color: var(--cinza-borda); }
+  .dia-cel.selecionado { background: var(--rosa-light); border: 2px solid var(--rosa); color: var(--rosa); font-weight: 500; }
+  .evento-item { padding: 12px; background: var(--rosa-light); border-left: 3px solid var(--rosa); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin-bottom: 8px; cursor: pointer; }
+  .evento-hora { font-size: 12px; color: var(--rosa); font-weight: 500; }
+  .evento-nome { font-size: 14px; font-weight: 500; margin-top: 2px; }
+  .evento-local { font-size: 12px; color: var(--texto-sec); margin-top: 2px; }
+  .google-btn { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border: 1px solid var(--cinza-borda); border-radius: var(--radius-sm); background: white; cursor: pointer; width: 100%; font-size: 14px; margin-bottom: 16px; }
+
+  /* EVENTO DETALHE */
+  .atendimento-row { background: var(--cinza-light); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 8px; }
+  .atendimento-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .atendimento-cliente { font-weight: 500; font-size: 15px; }
+  .atendimento-valor { font-size: 15px; color: var(--verde); font-weight: 500; }
+  .atendimento-sub { font-size: 12px; color: var(--texto-sec); }
+  .pagamento-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--cinza-borda); }
+  .pagamento-row:last-child { border-bottom: none; }
+
+  /* COMISSÃO */
+  .comissao-card { background: var(--branco); border: 1px solid var(--cinza-borda); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+  .comissao-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+  .pix-box { background: var(--cinza-light); border-radius: var(--radius-sm); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+  .pix-chave { font-size: 13px; color: var(--texto-sec); word-break: break-all; flex: 1; margin-right: 10px; }
+  .btn-copiar { background: var(--rosa); color: white; border: none; padding: 6px 12px; border-radius: var(--radius-sm); font-size: 12px; cursor: pointer; white-space: nowrap; }
+
+  /* TOAST */
+  .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-80px); background: var(--texto); color: white; padding: 12px 20px; border-radius: 30px; font-size: 14px; z-index: 999; transition: transform 0.3s; white-space: nowrap; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* TABS */
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 2px; }
+  .tab { padding: 8px 16px; border-radius: 20px; font-size: 13px; border: 1px solid var(--cinza-borda); background: white; cursor: pointer; white-space: nowrap; }
+  .tab.ativo { background: var(--rosa); color: white; border-color: var(--rosa); }
+
+  /* SEÇÃO TÍTULO */
+  .secao-titulo { font-family: 'Playfair Display', serif; font-size: 22px; margin-bottom: 4px; }
+  .secao-sub { font-size: 13px; color: var(--texto-sec); margin-bottom: 20px; }
+
+  /* FINANCEIRO */
+  .grafico-barra { margin: 8px 0; }
+  .barra-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--texto-sec); margin-bottom: 4px; }
+  .barra-bg { background: var(--cinza-borda); border-radius: 4px; height: 8px; overflow: hidden; }
+  .barra-fill { height: 100%; border-radius: 4px; background: var(--rosa); transition: width 0.8s ease; }
+  .barra-fill.verde { background: var(--verde); }
+  .barra-fill.dourado { background: var(--dourado); }
+
+  /* CHIP */
+  .chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: var(--rosa-light); color: var(--rosa); border-radius: 20px; font-size: 12px; margin: 3px; }
+  .chip-remove { cursor: pointer; font-size: 14px; line-height: 1; }
+
+  /* SUGESTÃO */
+  .sugestao-badge { background: var(--dourado-light); color: #a07830; border: 1px dashed var(--dourado); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 12px; margin-bottom: 8px; }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--texto-sec); }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-text { font-size: 15px; margin-bottom: 16px; }
+
+  .separador { border: none; border-top: 1px solid var(--cinza-borda); margin: 16px 0; }
+
+  .status-bar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-logo">Studio Thayna</div>
+    <div class="header-sub">Gestão profissional</div>
+  </div>
+  <div class="header-right" id="google-status">
+    <button class="btn btn-outline btn-sm" onclick="iniciarGoogleAuth()" id="btn-google-connect">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      Conectar Google
+    </button>
+    <button class="btn btn-outline btn-sm" id="btn-sync" onclick="sincronizarGoogle()" style="display:none;" title="Sincronizar">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Sincronizar
+    </button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- AGENDA -->
+  <div class="tela ativa" id="tela-agenda">
+    <div class="card">
+      <div class="agenda-header">
+        <div class="agenda-mes" id="agenda-mes-titulo">Março 2026</div>
+        <div class="agenda-nav">
+          <button onclick="mudarMes(-1)">‹</button>
+          <button onclick="mudarMes(1)">›</button>
+        </div>
+      </div>
+      <div class="dias-semana">
+        <div class="dia-semana-label">D</div><div class="dia-semana-label">S</div>
+        <div class="dia-semana-label">T</div><div class="dia-semana-label">Q</div>
+        <div class="dia-semana-label">Q</div><div class="dia-semana-label">S</div>
+        <div class="dia-semana-label">S</div>
+      </div>
+      <div class="calendario" id="calendario"></div>
+    </div>
+    <div id="eventos-dia">
+      <div class="empty-state">
+        <div class="empty-icon">📅</div>
+        <div class="empty-text">Selecione um dia para ver os eventos</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EVENTOS -->
+  <div class="tela" id="tela-eventos">
+    <div class="secao-titulo">Eventos</div>
+    <div class="secao-sub">Gerencie seus atendimentos</div>
+    <div class="tabs">
+      <div class="tab ativo" onclick="filtrarEventos('todos', this)">Todos</div>
+      <div class="tab" onclick="filtrarEventos('pendente', this)">Pendentes</div>
+      <div class="tab" onclick="filtrarEventos('confirmado', this)">Confirmados</div>
+      <div class="tab" onclick="filtrarEventos('concluido', this)">Concluídos</div>
+    </div>
+    <div id="lista-eventos"></div>
+  </div>
+
+  <!-- SERVIÇOS -->
+  <div class="tela" id="tela-servicos">
+    <div class="secao-titulo">Serviços</div>
+    <div class="secao-sub">Serviços disponíveis para atendimento</div>
+    <div id="lista-servicos"></div>
+  </div>
+
+  <!-- COLABORADORAS -->
+  <div class="tela" id="tela-colaboradoras">
+    <div class="secao-titulo">Colaboradoras</div>
+    <div class="secao-sub">Equipe e comissões</div>
+    <div id="lista-colaboradoras"></div>
+  </div>
+
+  <!-- FINANCEIRO -->
+  <div class="tela" id="tela-financeiro">
+    <div class="secao-titulo">Financeiro</div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;">
+      <select class="form-input" id="fin-mes-sel" onchange="renderFinanceiro()" style="flex:1;"></select>
+    </div>
+    <div class="resumo-grid">
+      <div class="resumo-item destaque">
+        <div class="resumo-label">Total recebido</div>
+        <div class="resumo-valor" id="fin-total">R$ 0</div>
+      </div>
+      <div class="resumo-item">
+        <div class="resumo-label">Saldo líquido</div>
+        <div class="resumo-valor" id="fin-liquido">R$ 0</div>
+      </div>
+      <div class="resumo-item">
+        <div class="resumo-label">Comissões</div>
+        <div class="resumo-valor" id="fin-comissoes">R$ 0</div>
+      </div>
+      <div class="resumo-item">
+        <div class="resumo-label">A receber</div>
+        <div class="resumo-valor" id="fin-pendente">R$ 0</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-titulo">Comissões a pagar</div>
+      <div id="comissoes-pendentes"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-titulo">Comissões pagas</div>
+      <div id="comissoes-pagas"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-titulo">Histórico por colaboradora</div>
+      <div id="historico-colaboradoras"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-titulo">Por forma de pagamento</div>
+      <div id="grafico-pagamentos"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- NAV BOTTOM -->
+<nav class="nav-bottom">
+  <button class="nav-item active" onclick="navegar('agenda', this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Agenda
+  </button>
+  <button class="nav-item" onclick="navegar('eventos', this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+    Eventos
+  </button>
+
+  <button class="nav-item" onclick="navegar('servicos', this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+    Serviços
+  </button>
+  <button class="nav-item" onclick="navegar('colaboradoras', this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+    Equipe
+  </button>
+  <button class="nav-item" onclick="navegar('financeiro', this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+    Financeiro
+  </button>
+</nav>
+
+<!-- FAB -->
+<button class="btn-fab" id="fab-btn" onclick="abrirModalPrincipal()">+</button>
+
+<!-- MODAL NOVO EVENTO -->
+<div class="modal-overlay" id="modal-evento">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-titulo" id="modal-evento-titulo">Novo Evento</div>
+    <div class="form-grupo">
+      <label class="form-label">Nome do evento</label>
+      <input class="form-input" id="ev-nome" placeholder="Ex: Casamento Silva">
+    </div>
+    <div class="form-row">
+      <div class="form-grupo">
+        <label class="form-label">Data</label>
+        <input class="form-input" id="ev-data" type="date">
+      </div>
+      <div class="form-grupo">
+        <label class="form-label">Horário</label>
+        <input class="form-input" id="ev-hora" type="time">
+      </div>
+    </div>
+    <div class="form-grupo">
+      <label class="form-label">Local</label>
+      <input class="form-input" id="ev-local" placeholder="Endereço ou online">
+    </div>
+
+    <hr class="separador">
+    <div style="font-weight:500; margin-bottom:12px; font-size:14px;">Colaboradoras do evento</div>
+    <div id="colabs-evento-lista" style="margin-bottom:12px;"></div>
+    <div style="display:flex; gap:8px; margin-bottom:16px;">
+      <select class="form-input" id="colab-sel" style="flex:1;"></select>
+      <button class="btn btn-outline btn-sm" onclick="adicionarColabEvento()">+ Add</button>
+    </div>
+
+    <hr class="separador">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <div style="font-weight:500; font-size:14px;">Clientes do evento</div>
+      <button class="btn btn-outline btn-sm" onclick="adicionarAtendimento()">+ Cliente</button>
+    </div>
+    <div id="atendimentos-form"></div>
+    <button class="btn btn-success" style="width:100%;justify-content:center;margin-top:8px;" onclick="distribuirAutomatico()">✨ Distribuir automaticamente</button>
+
+    <hr class="separador">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div>
+        <div style="font-weight:500;font-size:14px;">Cobrar deslocamento</div>
+        <div style="font-size:12px;color:var(--texto-sec);">Receita sem comissão</div>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <input type="checkbox" id="ev-deslocamento-check" onchange="toggleDeslocamento(this.checked)" style="width:18px;height:18px;accent-color:var(--rosa);">
+      </label>
+    </div>
+    <div id="ev-deslocamento-valor-box" style="display:none;" class="form-grupo">
+      <label class="form-label">Valor do deslocamento (R$)</label>
+      <input class="form-input" id="ev-deslocamento-valor" type="number" min="0" step="0.01" placeholder="0,00">
+    </div>
+    <hr class="separador">
+    <button class="btn btn-primary" onclick="salvarEvento()">Salvar Evento</button>
+    <button class="btn btn-outline" style="width:100%; margin-top:8px; justify-content:center;" onclick="fecharModal('modal-evento')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL DETALHE EVENTO -->
+<div class="modal-overlay" id="modal-detalhe-evento">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div id="detalhe-evento-conteudo"></div>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button class="btn btn-outline" style="flex:1;justify-content:center;" onclick="fecharModal('modal-detalhe-evento')">Fechar</button>
+      <button class="btn btn-outline" style="flex:1;justify-content:center;color:var(--rosa);border-color:var(--rosa);" onclick="editarEventoAtual()">✏️ Editar</button>
+      <button class="btn btn-danger btn-sm" style="flex:1;justify-content:center;" onclick="excluirEventoAtual()">🗑 Excluir</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOVO CLIENTE -->
+<div class="modal-overlay" id="modal-cliente">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-titulo">Nova Cliente</div>
+    <div class="form-grupo">
+      <label class="form-label">Nome completo</label>
+      <input class="form-input" id="cl-nome" placeholder="Nome da cliente">
+    </div>
+    <div class="form-grupo">
+      <label class="form-label">Telefone / WhatsApp</label>
+      <input class="form-input" id="cl-tel" type="tel" placeholder="(00) 00000-0000">
+    </div>
+    <div class="form-grupo">
+      <label class="form-label">E-mail</label>
+      <input class="form-input" id="cl-email" type="email" placeholder="email@exemplo.com">
+    </div>
+    <button class="btn btn-primary" onclick="salvarCliente()">Salvar Cliente</button>
+    <button class="btn btn-outline" style="width:100%; margin-top:8px; justify-content:center;" onclick="fecharModal('modal-cliente')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL NOVA COLABORADORA -->
+<div class="modal-overlay" id="modal-colaboradora">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-titulo" id="modal-colab-titulo">Nova Colaboradora</div>
+    <div class="form-grupo">
+      <label class="form-label">Nome completo</label>
+      <input class="form-input" id="colab-nome" placeholder="Nome da colaboradora">
+    </div>
+    <div class="form-grupo">
+      <label class="form-label">Telefone</label>
+      <input class="form-input" id="colab-tel" type="tel" placeholder="(00) 00000-0000">
+    </div>
+    <div class="form-grupo">
+      <label class="form-label">Comissão padrão (%)</label>
+      <input class="form-input" id="colab-comissao" type="number" min="0" max="100" placeholder="Ex: 40">
+    </div>
+    <div class="form-grupo">
+      <label class="form-label">Chave PIX</label>
+      <input class="form-input" id="colab-pix" placeholder="CPF, e-mail, telefone ou chave aleatória">
+    </div>
+    <button class="btn btn-primary" onclick="salvarColaboradora()">Salvar Colaboradora</button>
+    <button class="btn btn-outline" style="width:100%; margin-top:8px; justify-content:center;" onclick="fecharModal('modal-colaboradora')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL SERVIÇO -->
+<div class="modal-overlay" id="modal-servico">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-titulo" id="modal-servico-titulo">Novo Serviço</div>
+    <div class="form-grupo">
+      <label class="form-label">Nome do serviço</label>
+      <input class="form-input" id="srv-nome" placeholder="Ex: Maquiagem Social">
+    </div>
+    <button class="btn btn-primary" onclick="salvarServico()">Salvar Serviço</button>
+    <button class="btn btn-outline" style="width:100%;margin-top:8px;justify-content:center;" onclick="fecharModal('modal-servico')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL SELECIONAR SERVIÇOS DO CLIENTE -->
+<div class="modal-overlay" id="modal-sel-servicos">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-titulo">Selecionar Serviços</div>
+    <div id="sel-servicos-lista"></div>
+    <button class="btn btn-primary" style="margin-top:16px;" onclick="fecharModal('modal-sel-servicos')">Confirmar</button>
+  </div>
+</div>
+
+<!-- MODAL PAGAMENTO -->
+<div class="modal-overlay" id="modal-pagamento">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-titulo" id="modal-pag-titulo">Registrar Pagamento</div>
+    <input type="hidden" id="pag-evento-id">
+    <input type="hidden" id="pag-atend-idx">
+    <div class="form-grupo">
+      <label class="form-label">Tipo</label>
+      <select class="form-input" id="pag-tipo">
+        <option value="sinal">Sinal</option>
+        <option value="restante">Restante</option>
+        <option value="total">Total (à vista)</option>
+      </select>
+    </div>
+    <div class="form-grupo">
+      <label class="form-label">Valor (R$)</label>
+      <input class="form-input" id="pag-valor" type="number" min="0" step="0.01" placeholder="0,00">
+    </div>
+    <div class="form-grupo">
+      <label class="form-label">Forma de pagamento</label>
+      <select class="form-input" id="pag-forma">
+        <option>PIX</option>
+        <option>Cartão de crédito</option>
+        <option>Cartão de débito</option>
+        <option>Dinheiro</option>
+        <option>Transferência</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="salvarPagamento()">Registrar</button>
+    <button class="btn btn-outline" style="width:100%; margin-top:8px; justify-content:center;" onclick="fecharModal('modal-pagamento')">Cancelar</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://pklkhlbarcezavkzqhsp.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrbGtobGJhcmNlemF2a3pxaHNwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzNjU2NjUsImV4cCI6MjA4OTk0MTY2NX0.Jq1Cp76qLdmZNO19yQhsVq4Cvfnl0dRTEB-oifgE2Xw';
+const GOOGLE_CLIENT_ID = '1054000419123-63epgfgkac3an09skhiq7tpf3861me4n.apps.googleusercontent.com';
+const GOOGLE_API_KEY = 'AIzaSyDzF35wR7guepU4CtsMLL9WS4BdhHsSzbA';
+const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/calendar';
+
+let db;
+try {
+  db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+} catch(e) { console.log('Supabase init error', e); }
+
+// STATE
+let state = {
+  telaAtual: 'agenda',
+  mesAtual: new Date(),
+  diaSelecionado: null,
+  googleToken: null,
+  colabsEvento: [],
+  atendimentosEvento: [],
+  eventoEditandoId: null,
+  colabEditandoId: null,
+  selServicosAtendIdx: null,
+  clientes: [],
+  colaboradoras: [],
+  eventos: [],
+  servicos: JSON.parse(localStorage.getItem('servicos') || '[]'),
+};
+
+// NAVEGAÇÃO
+function navegar(tela, btn) {
+  document.querySelectorAll('.tela').forEach(t => t.classList.remove('ativa'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('tela-' + tela).classList.add('ativa');
+  btn.classList.add('active');
+  state.telaAtual = tela;
+  const fab = document.getElementById('fab-btn');
+  fab.style.display = ['agenda','financeiro'].includes(tela) ? 'none' : 'flex';
+  if (tela === 'financeiro') fab.style.display = 'none';
+  if (tela === 'agenda') { renderCalendario(); fab.style.display = 'flex'; }
+  if (tela === 'eventos') renderEventos();
+  if (tela === 'servicos') renderServicos();
+  if (tela === 'colaboradoras') renderColaboradoras();
+  if (tela === 'financeiro') renderFinanceiro();
+}
+
+function abrirModalPrincipal() {
+  if (state.telaAtual === 'servicos') { abrirModalServico(); return; }
+  if (state.telaAtual === 'colaboradoras') { abrirModalColaboradora(); return; }
+  abrirModalEvento();
+}
+
+// TOAST
+function toast(msg, dur=2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+
+// MODAIS
+function abrirModal(id) { document.getElementById(id).classList.add('aberto'); }
+function fecharModal(id) { document.getElementById(id).classList.remove('aberto'); }
+
+// ==================== SUPABASE ====================
+async function carregarDados() {
+  if (!db) return usarDadosMock();
+  try {
+    const [ev, cl, co] = await Promise.all([
+      db.from('eventos').select('*').order('data', {ascending: true}),
+      db.from('clientes').select('*').order('nome'),
+      db.from('colaboradoras').select('*').order('nome'),
+    ]);
+    // Carrega eventos do Supabase — esses têm prioridade total
+    state.eventos = (ev.data || []).map(e => ({
+      ...e,
+      atendimentos: Array.isArray(e.atendimentos) ? e.atendimentos : (typeof e.atendimentos === 'string' ? JSON.parse(e.atendimentos) : []),
+      colabs: Array.isArray(e.colabs) ? e.colabs : (typeof e.colabs === 'string' ? JSON.parse(e.colabs) : [])
+    }));
+    state.googleIdsNoSupabase = new Set(state.eventos.filter(e => e.google_id).map(e => e.google_id));
+    state.clientes = cl.data || [];
+    state.colaboradoras = co.data || [];
+  } catch(e) {
+    console.log('Erro Supabase:', e);
+  }
+  renderCalendario();
+  renderColabSelect();
+  // Busca Google DEPOIS do Supabase carregar — garante que googleIdsNoSupabase está populado
+  if (state.googleToken) {
+    buscarEventosGoogle();
+  }
+}
+
+function usarDadosMock() {
+  state.colaboradoras = [
+    {id:'c1', nome:'Maria Santos', telefone:'(54) 99999-1111', comissao_padrao:40, pix:'maria@email.com'},
+    {id:'c2', nome:'Joana Lima', telefone:'(54) 99999-2222', comissao_padrao:35, pix:'123.456.789-00'},
+  ];
+  state.clientes = [
+    {id:'cl1', nome:'Ana Silva', telefone:'(54) 98888-1111', email:'ana@email.com'},
+    {id:'cl2', nome:'Paula Costa', telefone:'(54) 98888-2222', email:'paula@email.com'},
+    {id:'cl3', nome:'Bete Oliveira', telefone:'(54) 98888-3333', email:'bete@email.com'},
+  ];
+  const hoje = new Date();
+  state.eventos = [
+    {
+      id:'e1', nome:'Casamento Silva', data: formatData(hoje), hora:'08:00', local:'Salão Nobre', status:'confirmado',
+      colabs:[{id:'c1', nome:'Maria Santos', servicos:['Maquiagem']}, {id:'c2', nome:'Joana Lima', servicos:['Cabelo']}],
+      atendimentos:[
+        {cliente_id:'cl1', cliente_nome:'Ana Silva', servico:'Maquiagem', colab_id:'c1', colab_nome:'Maria Santos', valor:300, comissao_pct:40, pagamentos:[]},
+        {cliente_id:'cl2', cliente_nome:'Paula Costa', servico:'Cabelo', colab_id:'c2', colab_nome:'Joana Lima', valor:200, comissao_pct:35, pagamentos:[{tipo:'sinal', valor:100, forma:'PIX'}]},
+      ]
+    }
+  ];
+}
+
+async function salvarNoBD(tabela, dados) {
+  if (!db) { toast('Dados salvos localmente (sem Supabase)'); return {data: [{...dados, id: 'local_'+Date.now()}]}; }
+  try {
+    const dadosSerializados = {...dados};
+    if (dadosSerializados.atendimentos) dadosSerializados.atendimentos = JSON.parse(JSON.stringify(dadosSerializados.atendimentos));
+    if (dadosSerializados.colabs) dadosSerializados.colabs = JSON.parse(JSON.stringify(dadosSerializados.colabs));
+    const r = await db.from(tabela).insert(dadosSerializados).select();
+    if (r.error) { console.error('Supabase insert error:', r.error); return {data:[{...dados, id:'local_'+Date.now()}]}; }
+    return r;
+  } catch(e) { console.log(e); return {data:[{...dados, id:'local_'+Date.now()}]}; }
+}
+
+async function atualizarNoBD(tabela, id, dados) {
+  if (!db) { toast('Atualizado localmente'); return; }
+  try {
+    const dadosSerializados = {...dados};
+    if (dadosSerializados.atendimentos) dadosSerializados.atendimentos = JSON.parse(JSON.stringify(dadosSerializados.atendimentos));
+    if (dadosSerializados.colabs) dadosSerializados.colabs = JSON.parse(JSON.stringify(dadosSerializados.colabs));
+    const r = await db.from(tabela).update(dadosSerializados).eq('id', id);
+    if (r.error) console.error('Supabase update error:', r.error);
+  } catch(e) { console.log(e); }
+}
+
+// ==================== GOOGLE CALENDAR ====================
+function iniciarGoogleAuth() {
+  const redirectUri = window.location.origin + window.location.pathname;
+  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(GOOGLE_SCOPES)}&prompt=select_account`;
+  window.location.href = url;
+}
+
+function verificarTokenGoogle() {
+  const hash = window.location.hash;
+  if (hash && hash.includes('access_token')) {
+    const params = new URLSearchParams(hash.replace('#', ''));
+    const token = params.get('access_token');
+    const expiresIn = parseInt(params.get('expires_in') || '3600');
+    const expiry = Date.now() + expiresIn * 1000;
+    localStorage.setItem('google_token', token);
+    localStorage.setItem('google_token_expiry', expiry.toString());
+    state.googleToken = token;
+    window.history.replaceState({}, document.title, window.location.pathname);
+    atualizarBotaoGoogle();
+    toast('Google Calendar conectado! ✓');
+    // buscarEventosGoogle será chamado pelo carregarDados que roda no DOMContentLoaded
+  } else {
+    const token = localStorage.getItem('google_token');
+    const expiry = parseInt(localStorage.getItem('google_token_expiry') || '0');
+    if (token && Date.now() < expiry) {
+      state.googleToken = token;
+      atualizarBotaoGoogle();
+      // Não chama buscarEventosGoogle aqui — será chamado pelo carregarDados após Supabase carregar
+    } else {
+      localStorage.removeItem('google_token');
+      localStorage.removeItem('google_token_expiry');
+    }
+  }
+}
+
+function atualizarBotaoGoogle() {
+  const btn = document.getElementById('btn-google-connect');
+  const btnSync = document.getElementById('btn-sync');
+  if (state.googleToken) {
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Google Conectado';
+    btn.style.color = 'var(--verde)';
+    btn.style.borderColor = 'var(--verde)';
+    btn.onclick = null;
+    if (btnSync) btnSync.style.display = 'flex';
+  }
+}
+
+async function sincronizarGoogle() {
+  const btnSync = document.getElementById('btn-sync');
+  if (btnSync) { btnSync.style.opacity = '0.5'; btnSync.style.pointerEvents = 'none'; }
+  // Remove apenas eventos que vieram SÓ do Google (id começa com g_) e NÃO estão no Supabase
+  state.eventos = state.eventos.filter(e => !e.id.startsWith('g_'));
+  await buscarEventosGoogle();
+  if (btnSync) { btnSync.style.opacity = '1'; btnSync.style.pointerEvents = 'auto'; }
+}
+
+async function buscarEventosGoogle() {
+  if (!state.googleToken) return;
+  try {
+    // Recarrega googleIdsNoSupabase do Supabase para garantir que está atualizado
+    if (db) {
+      try {
+        const r = await db.from('eventos').select('google_id').not('google_id', 'is', null);
+        if (r.data) {
+          state.googleIdsNoSupabase = new Set(r.data.map(e => e.google_id).filter(Boolean));
+          console.log('Google IDs no Supabase:', [...state.googleIdsNoSupabase]);
+        }
+      } catch(e) { console.log('Erro ao recarregar googleIds:', e); }
+    }
+    // 1. Busca TODOS os calendários da conta
+    const rCals = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
+      headers: { Authorization: `Bearer ${state.googleToken}` }
+    });
+    const dataCals = await rCals.json();
+    const calendarios = (dataCals.items || []).map(c => c.id);
+
+    const agora = new Date();
+    const inicio = new Date(agora.getFullYear(), agora.getMonth(), 1).toISOString();
+    const fim = new Date(agora.getFullYear(), agora.getMonth()+2, 0).toISOString();
+
+    // 2. Busca eventos de cada calendário
+    let totalNovos = 0;
+    for (const calId of calendarios) {
+      try {
+        const r = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events?timeMin=${inicio}&timeMax=${fim}&singleEvents=true&orderBy=startTime`, {
+          headers: { Authorization: `Bearer ${state.googleToken}` }
+        });
+        const data = await r.json();
+        if (data.items) {
+          data.items.forEach(item => {
+            const dataEv = item.start.date || item.start.dateTime?.split('T')[0];
+            const dataEvStr = dataEv;
+            // Nunca sobrescreve evento que já está no Supabase
+            const jaNoSupabase = (state.googleIdsNoSupabase || new Set()).has(item.id);
+            const jaLocal = state.eventos.find(e => e.google_id === item.id || e.id === 'g_' + item.id);
+            if (!jaNoSupabase && !jaLocal && dataEvStr) {
+              state.eventos.push({
+                id: 'g_' + item.id, google_id: item.id,
+                nome: item.summary || 'Evento',
+                data: dataEvStr,
+                hora: item.start.dateTime ? item.start.dateTime.split('T')[1].substring(0,5) : '',
+                local: item.location || '',
+                status: 'confirmado', colabs: [], atendimentos: []
+              });
+              totalNovos++;
+            }
+          });
+        }
+      } catch(e) { console.log('Erro ao buscar calendário:', calId, e); }
+    }
+    renderCalendario();
+    if (totalNovos > 0) toast(`${totalNovos} evento(s) importado(s) do Google!`);
+    else toast('Agenda sincronizada!');
+  } catch(e) { console.log('Erro Google Calendar:', e); }
+}
+
+async function criarEventoGoogle(evento) {
+  if (!state.googleToken) return;
+  try {
+    const body = {
+      summary: evento.nome,
+      location: evento.local,
+      start: { dateTime: `${evento.data}T${evento.hora || '09:00'}:00`, timeZone: 'America/Sao_Paulo' },
+      end: { dateTime: `${evento.data}T${evento.hora || '09:00'}:00`, timeZone: 'America/Sao_Paulo' },
+      description: `Atendimentos: ${evento.atendimentos.map(a => `${a.cliente_nome} - ${a.servico}`).join(', ')}`
+    };
+    const r = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${state.googleToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await r.json();
+    return data.id;
+  } catch(e) { console.log(e); }
+}
+
+// ==================== AGENDA / CALENDÁRIO ====================
+function formatData(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function mudarMes(dir) {
+  state.mesAtual.setMonth(state.mesAtual.getMonth() + dir);
+  renderCalendario();
+}
+
+function renderCalendario() {
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const m = state.mesAtual;
+  document.getElementById('agenda-mes-titulo').textContent = `${meses[m.getMonth()]} ${m.getFullYear()}`;
+  const cal = document.getElementById('calendario');
+  cal.innerHTML = '';
+  const primeiroDia = new Date(m.getFullYear(), m.getMonth(), 1).getDay();
+  const diasNoMes = new Date(m.getFullYear(), m.getMonth()+1, 0).getDate();
+  const hoje = formatData(new Date());
+  const diasComEvento = new Set(state.eventos.map(e => e.data));
+  for (let i = 0; i < primeiroDia; i++) {
+    const d = document.createElement('div');
+    d.className = 'dia-cel outro-mes';
+    const prevDias = new Date(m.getFullYear(), m.getMonth(), 0).getDate();
+    d.textContent = prevDias - primeiroDia + i + 1;
+    cal.appendChild(d);
+  }
+  for (let d = 1; d <= diasNoMes; d++) {
+    const dataStr = `${m.getFullYear()}-${String(m.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const cel = document.createElement('div');
+    cel.className = 'dia-cel';
+    if (dataStr === hoje) cel.classList.add('hoje');
+    if (diasComEvento.has(dataStr)) cel.classList.add('tem-evento');
+    if (dataStr === state.diaSelecionado) cel.classList.add('selecionado');
+    cel.textContent = d;
+    cel.onclick = () => selecionarDia(dataStr);
+    cal.appendChild(cel);
+  }
+}
+
+function selecionarDia(data) {
+  state.diaSelecionado = data;
+  renderCalendario();
+  const eventos = state.eventos.filter(e => e.data === data);
+  const container = document.getElementById('eventos-dia');
+  const [ano, mes, dia] = data.split('-');
+  const titulo = `${dia}/${mes}/${ano}`;
+  if (eventos.length === 0) {
+    container.innerHTML = `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-weight:500;">${titulo}</div><button class="btn btn-outline btn-sm" onclick="abrirModalEvento('${data}')">+ Evento</button></div><div style="color:var(--texto-sec);font-size:13px;margin-top:12px;">Nenhum evento neste dia</div></div>`;
+    return;
+  }
+  container.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><div style="font-weight:500;font-size:15px;">${titulo}</div><button class="btn btn-outline btn-sm" onclick="abrirModalEvento('${data}')">+ Evento</button></div>` +
+    eventos.map(e => `
+      <div class="evento-item" onclick="abrirDetalheEvento(&quot;${e.id}&quot;)" style="cursor:pointer;">
+        <div class="evento-hora" style="pointer-events:none;">${e.hora || ''} ${e.google_id ? '📅 Google' : ''}</div>
+        <div class="evento-nome" style="pointer-events:none;">${e.nome}</div>
+        ${e.local ? `<div class="evento-local" style="pointer-events:none;">📍 ${e.local}</div>` : ''}
+        <div style="margin-top:8px;pointer-events:none;" class="status-bar">
+          <span class="badge badge-${e.status==='confirmado'?'pago':e.status==='pendente'?'pendente':'sinal'}">${e.status||'pendente'}</span>
+          <span style="font-size:12px;color:var(--texto-sec);">${e.atendimentos?.length||0} atendimento(s)</span>
+        </div>
+      </div>
+    `).join('');
+}
+
+// ==================== EVENTOS ====================
+function renderEventos(filtro='todos') {
+  let evs = [...state.eventos].sort((a,b) => a.data > b.data ? 1 : -1);
+  if (filtro !== 'todos') evs = evs.filter(e => e.status === filtro);
+  const container = document.getElementById('lista-eventos');
+  if (evs.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">Nenhum evento encontrado</div><button class="btn btn-primary btn-sm" onclick="abrirModalEvento()">Criar evento</button></div>`;
+    return;
+  }
+  container.innerHTML = evs.map(e => {
+    const total = (e.atendimentos||[]).reduce((s,a) => s + (a.servicos||[]).reduce((sv,sr)=>sv+(sr.valor||0),0), 0) + (e.deslocamento||0);
+    const recebido = (e.atendimentos||[]).reduce((s,a) => s + ((a.pagamentos||[]).reduce((ps,p) => ps+(p.valor||0), 0)), 0) + (e.deslocamento||0);
+    const [ano,mes,dia] = e.data.split('-');
+    return `
+    <div class="card" onclick="abrirDetalheEvento(&quot;${e.id}&quot;)" style="cursor:pointer;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div style="font-weight:500;font-size:16px;">${e.nome}</div>
+          <div style="font-size:13px;color:var(--texto-sec);margin-top:3px;">${dia}/${mes}/${ano} ${e.hora?'às '+e.hora:''}</div>
+          ${e.local?`<div style="font-size:12px;color:var(--texto-sec);">📍 ${e.local}</div>`:''}
+        </div>
+        <span class="badge badge-${e.status==='confirmado'?'pago':e.status==='pendente'?'pendente':'sinal'}">${e.status||'pendente'}</span>
+      </div>
+      <hr class="separador">
+      <div style="display:flex;justify-content:space-between;font-size:13px;">
+        <span style="color:var(--texto-sec);">${(e.atendimentos||[]).length} atendimento(s)</span>
+        <span style="color:var(--verde);font-weight:500;">R$ ${recebido.toFixed(2)} / R$ ${total.toFixed(2)}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filtrarEventos(filtro, el) {
+  document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('ativo'));
+  el.classList.add('ativo');
+  renderEventos(filtro);
+}
+
+function abrirModalEvento(data='') {
+  state.eventoEditandoId = null;
+  state.colabsEvento = [];
+  state.atendimentosEvento = [];
+  document.getElementById('ev-nome').value = '';
+  document.getElementById('ev-data').value = data || formatData(new Date());
+  document.getElementById('ev-hora').value = '';
+  document.getElementById('ev-local').value = '';
+  document.getElementById('modal-evento-titulo').textContent = 'Novo Evento';
+  document.getElementById('ev-deslocamento-check').checked = false;
+  document.getElementById('ev-deslocamento-valor-box').style.display = 'none';
+  document.getElementById('ev-deslocamento-valor').value = '';
+  renderColabEventoLista();
+  renderAtendimentosForm();
+  abrirModal('modal-evento');
+}
+
+async function abrirDetalheEvento(id) {
+  state.eventoDetalheId = id;
+  let ev = state.eventos.find(e => e.id === id);
+  if (!ev) return;
+  // Se o evento veio do Supabase, recarrega para garantir dados mais recentes
+  if (db && !id.startsWith('g_') && !id.startsWith('local_')) {
+    try {
+      const r = await db.from('eventos').select('*').eq('id', id).single();
+      if (r.data) {
+        const evAtualizado = {
+          ...r.data,
+          atendimentos: Array.isArray(r.data.atendimentos) ? r.data.atendimentos : (r.data.atendimentos ? JSON.parse(r.data.atendimentos) : []),
+          colabs: Array.isArray(r.data.colabs) ? r.data.colabs : (r.data.colabs ? JSON.parse(r.data.colabs) : [])
+        };
+        const idx = state.eventos.findIndex(e => e.id === id);
+        if (idx >= 0) state.eventos[idx] = evAtualizado;
+        ev = evAtualizado;
+      }
+    } catch(e) { console.log('Erro ao recarregar evento:', e); }
+  }
+  const [ano,mes,dia] = ev.data.split('-');
+  const totalAtend = (ev.atendimentos||[]).reduce((s,a) => s+((a.servicos||[]).reduce((sv,sr)=>sv+(sr.valor||0),0)), 0);
+  const total = totalAtend + (ev.deslocamento||0);
+  const totalComissao = (ev.atendimentos||[]).reduce((s,a) => {
+    const tot = (a.servicos||[]).reduce((sv,sr)=>sv+(sr.valor||0),0);
+    return s + tot*(a.comissao_pct||0)/100;
+  }, 0);
+  let html = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+      <div>
+        <div class="modal-titulo" style="margin-bottom:4px;">${ev.nome}</div>
+        <div style="font-size:13px;color:var(--texto-sec);">${dia}/${mes}/${ano} ${ev.hora?'às '+ev.hora:''}</div>
+        ${ev.local?`<div style="font-size:12px;color:var(--texto-sec);">📍 ${ev.local}</div>`:''}
+      </div>
+      <span class="badge badge-${ev.status==='confirmado'?'pago':ev.status==='pendente'?'pendente':'sinal'}">${ev.status||'pendente'}</span>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <select class="form-input" style="flex:1;" onchange="mudarStatusEvento('${id}',this.value)">
+        <option ${ev.status==='pendente'?'selected':''}>pendente</option>
+        <option ${ev.status==='confirmado'?'selected':''}>confirmado</option>
+        <option ${ev.status==='concluido'?'selected':''}>concluido</option>
+        <option ${ev.status==='cancelado'?'selected':''}>cancelado</option>
+      </select>
+    </div>
+    <div style="background:var(--cinza-light);border-radius:var(--radius-sm);padding:12px;margin-bottom:16px;display:flex;justify-content:space-between;">
+      <div><div style="font-size:11px;color:var(--texto-sec);">Total</div><div style="font-weight:500;">R$ ${total.toFixed(2)}</div></div>
+      <div><div style="font-size:11px;color:var(--texto-sec);">Comissões</div><div style="font-weight:500;">R$ ${totalComissao.toFixed(2)}</div></div>
+      <div><div style="font-size:11px;color:var(--texto-sec);">Líquido</div><div style="font-weight:500;color:var(--verde);">R$ ${(total-totalComissao).toFixed(2)}</div></div>
+    </div>
+    ${ev.deslocamento > 0 ? `
+    <div style="background:var(--dourado-light);border:1px solid var(--dourado);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-weight:500;font-size:14px;">🚗 Deslocamento</div>
+          <div style="font-size:12px;color:var(--texto-sec);">Receita sem comissão</div>
+        </div>
+        <div style="font-weight:500;font-size:16px;color:#a07830;">R$ ${(ev.deslocamento||0).toFixed(2)}</div>
+      </div>
+    </div>` : ''}
+    <div style="font-weight:500;font-size:14px;margin-bottom:12px;">Atendimentos</div>
+  `;
+  (ev.atendimentos||[]).forEach((a, idx) => {
+    const totalA = (a.servicos||[]).reduce((s,sv)=>s+(sv.valor||0),0);
+    const comissaoVal = totalA*(a.comissao_pct||0)/100;
+    const pago = (a.pagamentos||[]).reduce((s,p) => s+(p.valor||0), 0);
+    const restante = totalA - pago;
+    html += `
+    <div class="atendimento-row">
+      <div class="atendimento-header">
+        <div class="atendimento-cliente">${a.cliente_nome}</div>
+        <div class="atendimento-valor">R$ ${((a.servicos||[]).reduce((s,sv)=>s+(sv.valor||0),0)).toFixed(2)}</div>
+      </div>
+      <div class="atendimento-sub">
+        ${(a.servicos||[]).map(s => `${s.nome}: R$ ${(s.valor||0).toFixed(2)}`).join(' · ')}
+        ${a.colab_nome ? '· ' + a.colab_nome : ''}
+        · Comissão: ${a.comissao_pct||0}% (R$ ${comissaoVal.toFixed(2)})
+      </div>
+      <div style="margin-top:10px;">
+        ${(a.pagamentos||[]).map(p => `<div class="pagamento-row"><span style="font-size:13px;color:var(--texto-sec);">${p.tipo} · ${p.forma}</span><span style="font-size:13px;color:var(--verde);font-weight:500;">+ R$ ${(p.valor||0).toFixed(2)}</span></div>`).join('')}
+        ${restante > 0 ? `<div class="pagamento-row"><span style="font-size:13px;color:var(--texto-sec);">Pendente</span><span style="font-size:13px;color:#dc2626;font-weight:500;">R$ ${restante.toFixed(2)}</span></div>` : ''}
+      </div>
+      ${restante > 0 ? `<button class="btn btn-outline btn-sm" style="margin-top:8px;width:100%;" onclick="fecharModal('modal-detalhe-evento');abrirModalPagamento('${id}',${idx})">+ Registrar pagamento</button>` : '<div style="color:var(--verde);font-size:13px;margin-top:8px;">✓ Quitado</div>'}
+    </div>`;
+  });
+  document.getElementById('detalhe-evento-conteudo').innerHTML = html;
+  abrirModal('modal-detalhe-evento');
+}
+
+function mudarStatusEvento(id, status) {
+  const ev = state.eventos.find(e => e.id === id);
+  if (ev) { ev.status = status; atualizarNoBD('eventos', id, {status}); }
+}
+
+async function salvarEvento() {
+  const nome = document.getElementById('ev-nome').value.trim();
+  const data = document.getElementById('ev-data').value;
+  if (!nome || !data) { toast('Preencha nome e data!'); return; }
+  const deslocamentoCheck = document.getElementById('ev-deslocamento-check').checked;
+  const deslocamentoValor = deslocamentoCheck ? (parseFloat(document.getElementById('ev-deslocamento-valor').value) || 0) : 0;
+  const dados = {
+    nome, data,
+    hora: document.getElementById('ev-hora').value,
+    local: document.getElementById('ev-local').value,
+    colabs: JSON.parse(JSON.stringify(state.colabsEvento)),
+    atendimentos: JSON.parse(JSON.stringify(state.atendimentosEvento)),
+    deslocamento: deslocamentoValor,
+  };
+  if (state.eventoEditandoId) {
+    const idx = state.eventos.findIndex(e => e.id === state.eventoEditandoId);
+    if (idx >= 0) {
+      const evAtualizado = {...state.eventos[idx], ...dados};
+      console.log('Salvando evento:', state.eventoEditandoId, dados);
+
+      if (state.eventoEditandoId.startsWith('g_')) {
+        // Evento veio do Google — migra para Supabase pela primeira vez
+        const dadosParaSalvar = {...evAtualizado};
+        delete dadosParaSalvar.id;
+        const r = await salvarNoBD('eventos', dadosParaSalvar);
+        if (r.data && r.data[0]) {
+          const novoId = r.data[0].id;
+          state.eventos[idx] = {...evAtualizado, id: novoId};
+          state.eventoEditandoId = novoId;
+          if (!state.googleIdsNoSupabase) state.googleIdsNoSupabase = new Set();
+          if (evAtualizado.google_id) state.googleIdsNoSupabase.add(evAtualizado.google_id);
+          console.log('Migrado para Supabase:', novoId, evAtualizado.google_id);
+        }
+      } else {
+        // Evento já no Supabase — apenas atualiza
+        state.eventos[idx] = evAtualizado;
+        await atualizarNoBD('eventos', state.eventoEditandoId, dados);
+        console.log('Atualizado no Supabase:', state.eventoEditandoId);
+      }
+
+      toast('Evento atualizado! ✓');
+    }
+  } else {
+    dados.status = 'pendente';
+    const r = await salvarNoBD('eventos', dados);
+    if (r.data && r.data[0]) {
+      dados.id = r.data[0].id;
+      state.eventos.push(dados);
+      if (state.googleToken) {
+        const gId = await criarEventoGoogle(dados);
+        if (gId) { dados.google_id = gId; atualizarNoBD('eventos', dados.id, {google_id: gId}); }
+      }
+      toast('Evento salvo! ' + (state.googleToken ? '📅 Sincronizado com Google' : ''));
+    }
+  }
+  fecharModal('modal-evento');
+  renderCalendario();
+  if (state.telaAtual === 'eventos') renderEventos();
+  if (state.diaSelecionado === data) selecionarDia(data);
+}
+
+function editarEventoAtual() {
+  const id = state.eventoDetalheId;
+  if (!id) return;
+  const ev = state.eventos.find(e => e.id === id);
+  if (!ev) return;
+  fecharModal('modal-detalhe-evento');
+  state.eventoEditandoId = id;
+  state.colabsEvento = JSON.parse(JSON.stringify(ev.colabs || []));
+  state.atendimentosEvento = JSON.parse(JSON.stringify(ev.atendimentos || []));
+  document.getElementById('ev-nome').value = ev.nome;
+  document.getElementById('ev-data').value = ev.data;
+  document.getElementById('ev-hora').value = ev.hora || '';
+  document.getElementById('ev-local').value = ev.local || '';
+  document.getElementById('modal-evento-titulo').textContent = 'Editar Evento';
+  const temDesl = !!(ev.deslocamento && ev.deslocamento > 0);
+  document.getElementById('ev-deslocamento-check').checked = temDesl;
+  document.getElementById('ev-deslocamento-valor-box').style.display = temDesl ? 'block' : 'none';
+  document.getElementById('ev-deslocamento-valor').value = temDesl ? ev.deslocamento : '';
+  renderColabEventoLista();
+  renderAtendimentosForm();
+  abrirModal('modal-evento');
+}
+
+async function excluirEventoAtual() {
+  const id = state.eventoDetalheId;
+  if (!id) return;
+  if (!confirm('Tem certeza que deseja excluir este evento?')) return;
+  const ev = state.eventos.find(e => e.id === id);
+  if (ev && ev.google_id && state.googleToken) {
+    try {
+      await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${ev.google_id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${state.googleToken}` }
+      });
+    } catch(e) { console.log('Erro ao excluir do Google:', e); }
+  }
+  if (db && !id.startsWith('local_') && !id.startsWith('g_')) {
+    try { await db.from('eventos').delete().eq('id', id); } catch(e) {}
+  }
+  state.eventos = state.eventos.filter(e => e.id !== id);
+  fecharModal('modal-detalhe-evento');
+  toast('Evento excluído!');
+  renderCalendario();
+  if (state.diaSelecionado) selecionarDia(state.diaSelecionado);
+  if (state.telaAtual === 'eventos') renderEventos();
+}
+
+// ==================== COLABORADORAS NO EVENTO ====================
+function renderColabSelect() {
+  const sel = document.getElementById('colab-sel');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Selecionar colaboradora...</option>' +
+    state.colaboradoras.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+}
+
+function adicionarColabEvento() {
+  const sel = document.getElementById('colab-sel');
+  const id = sel.value;
+  if (!id) return;
+  const colab = state.colaboradoras.find(c => c.id === id);
+  if (!colab || state.colabsEvento.find(c => c.id === id)) { toast('Colaboradora já adicionada'); return; }
+  state.colabsEvento.push({id: colab.id, nome: colab.nome, servicos: []});
+  renderColabEventoLista();
+  renderAtendimentosForm();
+}
+
+function renderColabEventoLista() {
+  const container = document.getElementById('colabs-evento-lista');
+  if (state.colabsEvento.length === 0) {
+    container.innerHTML = '<div style="font-size:13px;color:var(--texto-sec);margin-bottom:8px;">Nenhuma colaboradora adicionada</div>';
+    return;
+  }
+  container.innerHTML = state.colabsEvento.map((c, idx) => `
+    <div style="background:var(--cinza-light);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span style="font-weight:500;font-size:14px;">${c.nome}</span>
+        <button onclick="removerColabEvento(${idx})" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:18px;">×</button>
+      </div>
+      <div style="font-size:12px;color:var(--texto-sec);margin-bottom:6px;">Serviços que fará neste evento:</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        ${['Maquiagem','Cabelo'].map(s => `
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">
+            <input type="checkbox" ${(c.servicos||[]).includes(s)?'checked':''} onchange="toggleServico(${idx},'${s}',this.checked)"> ${s}
+          </label>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleServico(idx, servico, checked) {
+  if (checked) {
+    if (!state.colabsEvento[idx].servicos.includes(servico)) state.colabsEvento[idx].servicos.push(servico);
+  } else {
+    state.colabsEvento[idx].servicos = state.colabsEvento[idx].servicos.filter(s => s !== servico);
+  }
+  renderAtendimentosForm();
+}
+
+function removerColabEvento(idx) {
+  state.colabsEvento.splice(idx, 1);
+  renderColabEventoLista();
+  renderAtendimentosForm();
+}
+
+// ==================== ATENDIMENTOS NO EVENTO ====================
+const SERVICOS_LISTA = ['Maquiagem', 'Cabelo', 'Sobrancelha', 'Cílios', 'Penteado', 'Skincare'];
+
+function adicionarAtendimento() {
+  state.atendimentosEvento.push({
+    cliente_nome: '',
+    servicos: [],
+    colab_id: '', colab_nome: '',
+    comissao_pct: 0,
+    pagamentos: []
+  });
+  renderAtendimentosForm();
+}
+
+function sugerirColab(servico) {
+  const aptos = state.colabsEvento.filter(c => (c.servicos||[]).includes(servico));
+  if (aptos.length === 0) return null;
+  const contagens = aptos.map(c => ({
+    colab: c,
+    count: state.atendimentosEvento.filter(a => a.colab_id === c.id && a.servico === servico).length
+  }));
+  contagens.sort((a,b) => a.count - b.count);
+  return contagens[0].colab;
+}
+
+function calcTotalAtend(a) {
+  return (a.servicos||[]).reduce((s, sv) => s + (sv.valor||0), 0);
+}
+
+function renderAtendimentosForm() {
+  const container = document.getElementById('atendimentos-form');
+  if (state.atendimentosEvento.length === 0) {
+    container.innerHTML = '<div style="font-size:13px;color:var(--texto-sec);margin-bottom:8px;">Nenhum cliente adicionado</div>';
+    return;
+  }
+  container.innerHTML = state.atendimentosEvento.map((a, idx) => {
+    const colabComp = state.colaboradoras.find(c => c.id === a.colab_id);
+    const comissaoPadrao = colabComp ? colabComp.comissao_padrao : 0;
+    const totalCliente = calcTotalAtend(a);
+    const comissaoVal = totalCliente * (a.comissao_pct || comissaoPadrao) / 100;
+    const horaSugerida = a.hora_sugerida || '';
+    return `
+    <div style="background:var(--cinza-light);border-radius:var(--radius-sm);padding:14px;margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <span style="font-weight:500;font-size:14px;">Cliente ${idx+1} ${horaSugerida ? '<span style="font-size:11px;color:var(--rosa);margin-left:6px;">⏰ '+horaSugerida+'</span>' : ''}</span>
+        <button onclick="removerAtendimento(${idx})" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:18px;">✕</button>
+      </div>
+
+      <div class="form-grupo">
+        <label class="form-label">Nome do cliente</label>
+        <input class="form-input" placeholder="Ex: Katia" value="${a.cliente_nome||''}" onblur="atualizarNomeAtend(${idx}, this.value)">
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <label class="form-label" style="margin:0;">Serviços</label>
+        <button class="btn btn-outline btn-sm" onclick="abrirSelServicos(${idx})">+ Selecionar</button>
+      </div>
+      ${(a.servicos||[]).length === 0 ? '<div style="font-size:13px;color:var(--texto-sec);margin-bottom:8px;">Nenhum serviço selecionado</div>' : ''}
+      ${(a.servicos||[]).map(sv => `
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <span style="font-size:14px;min-width:120px;font-weight:500;">${sv.nome}</span>
+          <input class="form-input" type="number" placeholder="R$ 0,00" min="0" step="0.01"
+            value="${sv.valor||''}"
+            onchange="atualizarValorServico(${idx},'${sv.nome}',parseFloat(this.value)||0)"
+            style="flex:1;">
+          <button onclick="toggleServicoCl(${idx},'${sv.nome}',false)" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:16px;padding:4px;">✕</button>
+        </div>
+      `).join('')}
+
+      <div style="border-top:1px solid var(--cinza-borda);margin:12px 0;padding-top:10px;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:13px;color:var(--texto-sec);">Total do cliente</span>
+        <span style="font-weight:500;font-size:15px;color:var(--verde);">R$ ${totalCliente.toFixed(2)}</span>
+      </div>
+
+      <div class="form-grupo">
+        <label class="form-label">Colaboradora ${a.colab_id ? '' : '<span style="color:var(--dourado);font-size:11px;">(ou use Distribuir)</span>'}</label>
+        <select class="form-input" onchange="atualizarAtendimento(${idx},'colab',this.value,this.options[this.selectedIndex].text)">
+          <option value="">Selecionar colaboradora...</option>
+          ${state.colabsEvento.map(c => `<option value="${c.id}" ${a.colab_id===c.id?'selected':''}>${c.nome}</option>`).join('')}
+        </select>
+      </div>
+
+      <div class="form-grupo">
+        <label class="form-label">Comissão sobre total ${comissaoPadrao ? '(padrão: '+comissaoPadrao+'%)' : ''}</label>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input class="form-input" type="number" value="${a.comissao_pct||comissaoPadrao||''}" min="0" max="100"
+            placeholder="${comissaoPadrao||0}" style="flex:1;"
+            onchange="atualizarAtendimento(${idx},'comissao_pct',parseFloat(this.value)||0)">
+          ${totalCliente > 0 ? `<span style="font-size:13px;color:var(--rosa);white-space:nowrap;">= R$ ${comissaoVal.toFixed(2)}</span>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function atualizarNomeAtend(idx, valor) {
+  state.atendimentosEvento[idx].cliente_nome = valor;
+}
+
+function toggleServicoCl(idx, nomeServico, checked) {
+  if (!state.atendimentosEvento[idx].servicos) state.atendimentosEvento[idx].servicos = [];
+  if (checked) {
+    if (!state.atendimentosEvento[idx].servicos.find(s => s.nome === nomeServico)) {
+      state.atendimentosEvento[idx].servicos.push({nome: nomeServico, valor: 0});
+    }
+  } else {
+    state.atendimentosEvento[idx].servicos = state.atendimentosEvento[idx].servicos.filter(s => s.nome !== nomeServico);
+  }
+  renderAtendimentosForm();
+}
+
+function atualizarValorServico(idx, nomeServico, valor) {
+  if (!state.atendimentosEvento[idx].servicos) state.atendimentosEvento[idx].servicos = [];
+  const sv = state.atendimentosEvento[idx].servicos.find(s => s.nome === nomeServico);
+  if (sv) sv.valor = valor;
+  renderAtendimentosForm();
+}
+
+function atualizarAtendimento(idx, campo, valor, texto='') {
+  if (campo === 'cliente_nome') {
+    state.atendimentosEvento[idx].cliente_nome = valor;
+    return;
+  } else if (campo === 'colab') {
+    state.atendimentosEvento[idx].colab_id = valor;
+    state.atendimentosEvento[idx].colab_nome = texto;
+    const colab = state.colaboradoras.find(c => c.id === valor);
+    if (colab && !state.atendimentosEvento[idx].comissao_pct) {
+      state.atendimentosEvento[idx].comissao_pct = colab.comissao_padrao;
+    }
+  } else if (campo === 'servico') {
+    state.atendimentosEvento[idx].servico = valor;
+  } else {
+    state.atendimentosEvento[idx][campo] = valor;
+  }
+  renderAtendimentosForm();
+}
+
+function distribuirAutomatico() {
+  if (state.colabsEvento.length === 0) { toast('Adicione colaboradoras primeiro!'); return; }
+  if (state.atendimentosEvento.length === 0) { toast('Adicione clientes primeiro!'); return; }
+  const horaInicio = document.getElementById('ev-hora').value || '08:00';
+  const [h, m] = horaInicio.split(':').map(Number);
+  let minutoAtual = h * 60 + m;
+  const contagens = {};
+  state.colabsEvento.forEach(c => contagens[c.id] = 0);
+  state.atendimentosEvento.forEach((a, idx) => {
+    const servicos = (a.servicos||[]).map(s => s.nome);
+    const aptos = state.colabsEvento.filter(c => {
+      const colServicos = c.servicos || [];
+      return colServicos.length === 0 || servicos.some(s => colServicos.includes(s));
+    });
+    if (aptos.length > 0) {
+      aptos.sort((a, b) => (contagens[a.id]||0) - (contagens[b.id]||0));
+      const escolhida = aptos[0];
+      state.atendimentosEvento[idx].colab_id = escolhida.id;
+      state.atendimentosEvento[idx].colab_nome = escolhida.nome;
+      const colab = state.colaboradoras.find(c => c.id === escolhida.id);
+      if (colab && !state.atendimentosEvento[idx].comissao_pct) {
+        state.atendimentosEvento[idx].comissao_pct = colab.comissao_padrao;
+      }
+      contagens[escolhida.id] = (contagens[escolhida.id]||0) + 1;
+    }
+    const duracao = servicos.length * 50;
+    const hh = String(Math.floor(minutoAtual/60)).padStart(2,'0');
+    const mm = String(minutoAtual%60).padStart(2,'0');
+    state.atendimentosEvento[idx].hora_sugerida = `${hh}:${mm}`;
+    minutoAtual += duracao || 50;
+  });
+  renderAtendimentosForm();
+  toast('Distribuição realizada! ✓ Verifique e ajuste se necessário.');
+}
+
+function removerAtendimento(idx) {
+  state.atendimentosEvento.splice(idx, 1);
+  renderAtendimentosForm();
+}
+
+function toggleDeslocamento(checked) {
+  document.getElementById('ev-deslocamento-valor-box').style.display = checked ? 'block' : 'none';
+  if (!checked) document.getElementById('ev-deslocamento-valor').value = '';
+}
+
+// ==================== CLIENTES ====================
+function renderClientes(busca='') {
+  let lista = state.clientes;
+  if (busca) lista = lista.filter(c => c.nome.toLowerCase().includes(busca.toLowerCase()));
+  const container = document.getElementById('lista-clientes');
+  if (lista.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-text">Nenhuma cliente cadastrada</div></div>`;
+    return;
+  }
+  container.innerHTML = `<div class="card">` + lista.map(c => {
+    const ats = state.eventos.flatMap(e => (e.atendimentos||[]).filter(a => a.cliente_id === c.id));
+    const total = ats.reduce((s,a) => s+(a.valor||0), 0);
+    return `
+    <div class="lista-item">
+      <div class="avatar">${c.nome.charAt(0).toUpperCase()}</div>
+      <div class="lista-info">
+        <div class="lista-nome">${c.nome}</div>
+        <div class="lista-sub">${c.telefone||''} · ${ats.length} atend. · R$ ${total.toFixed(2)}</div>
+      </div>
+    </div>`;
+  }).join('') + '</div>';
+}
+
+function buscarClientes(v) { renderClientes(v); }
+
+function abrirModalCliente() {
+  document.getElementById('cl-nome').value = '';
+  document.getElementById('cl-tel').value = '';
+  document.getElementById('cl-email').value = '';
+  abrirModal('modal-cliente');
+}
+
+async function salvarCliente() {
+  const nome = document.getElementById('cl-nome').value.trim();
+  if (!nome) { toast('Informe o nome da cliente'); return; }
+  const cl = { nome, telefone: document.getElementById('cl-tel').value, email: document.getElementById('cl-email').value };
+  const r = await salvarNoBD('clientes', cl);
+  if (r.data && r.data[0]) {
+    cl.id = r.data[0].id;
+    state.clientes.push(cl);
+    toast('Cliente salva!');
+    fecharModal('modal-cliente');
+    renderClientes();
+    renderColabSelect();
+  }
+}
+
+// ==================== COLABORADORAS ====================
+function renderColaboradoras() {
+  const container = document.getElementById('lista-colaboradoras');
+  if (state.colaboradoras.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">💅</div><div class="empty-text">Nenhuma colaboradora cadastrada</div></div>`;
+    return;
+  }
+  container.innerHTML = state.colaboradoras.map(c => {
+    const ats = state.eventos.flatMap(e => (e.atendimentos||[]).filter(a => a.colab_id === c.id));
+    const totalComissao = ats.reduce((s,a) => s+((a.valor||0)*(a.comissao_pct||0)/100), 0);
+    return `
+    <div class="comissao-card">
+      <div class="comissao-header">
+        <div>
+          <div style="font-weight:500;font-size:16px;">${c.nome}</div>
+          <div style="font-size:13px;color:var(--texto-sec);">${c.telefone||''} · Comissão padrão: ${c.comissao_padrao||0}%</div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="editarColaboradora('${c.id}')">Editar</button>
+      </div>
+
+      ${c.pix ? `
+      <div class="pix-box">
+        <span class="pix-chave">PIX: ${c.pix}</span>
+        <button class="btn-copiar" onclick="copiarPix('${c.pix}')">Copiar</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function abrirModalColaboradora() {
+  state.colabEditandoId = null;
+  document.getElementById('modal-colab-titulo').textContent = 'Nova Colaboradora';
+  ['colab-nome','colab-tel','colab-comissao','colab-pix'].forEach(id => document.getElementById(id).value = '');
+  abrirModal('modal-colaboradora');
+}
+
+function editarColaboradora(id) {
+  const c = state.colaboradoras.find(c => c.id === id);
+  if (!c) return;
+  state.colabEditandoId = id;
+  document.getElementById('modal-colab-titulo').textContent = 'Editar Colaboradora';
+  document.getElementById('colab-nome').value = c.nome;
+  document.getElementById('colab-tel').value = c.telefone || '';
+  document.getElementById('colab-comissao').value = c.comissao_padrao || '';
+  document.getElementById('colab-pix').value = c.pix || '';
+  abrirModal('modal-colaboradora');
+}
+
+async function salvarColaboradora() {
+  const nome = document.getElementById('colab-nome').value.trim();
+  if (!nome) { toast('Informe o nome'); return; }
+  const dados = {
+    nome,
+    telefone: document.getElementById('colab-tel').value,
+    comissao_padrao: parseFloat(document.getElementById('colab-comissao').value) || 0,
+    pix: document.getElementById('colab-pix').value,
+  };
+  if (state.colabEditandoId) {
+    const idx = state.colaboradoras.findIndex(c => c.id === state.colabEditandoId);
+    state.colaboradoras[idx] = {...state.colaboradoras[idx], ...dados};
+    await atualizarNoBD('colaboradoras', state.colabEditandoId, dados);
+    toast('Colaboradora atualizada!');
+  } else {
+    const r = await salvarNoBD('colaboradoras', dados);
+    if (r.data && r.data[0]) { dados.id = r.data[0].id; state.colaboradoras.push(dados); }
+    toast('Colaboradora salva!');
+  }
+  fecharModal('modal-colaboradora');
+  renderColaboradoras();
+  renderColabSelect();
+}
+
+function copiarPix(chave) {
+  navigator.clipboard.writeText(chave).then(() => toast('Chave PIX copiada! ✓')).catch(() => toast('Chave: ' + chave));
+}
+
+// ==================== PAGAMENTOS ====================
+function abrirModalPagamento(eventoId, atendIdx) {
+  document.getElementById('pag-evento-id').value = eventoId;
+  document.getElementById('pag-atend-idx').value = atendIdx;
+  const ev = state.eventos.find(e => e.id === eventoId);
+  const a = ev?.atendimentos[atendIdx];
+  const titulo = a ? `Pagamento — ${a.cliente_nome}` : 'Registrar Pagamento';
+  document.getElementById('modal-pag-titulo').textContent = titulo;
+  document.getElementById('pag-valor').value = a ? (a.valor || '') : '';
+  abrirModal('modal-pagamento');
+}
+
+async function salvarPagamento() {
+  const eventoId = document.getElementById('pag-evento-id').value;
+  const idx = parseInt(document.getElementById('pag-atend-idx').value);
+  const valor = parseFloat(document.getElementById('pag-valor').value) || 0;
+  const tipo = document.getElementById('pag-tipo').value;
+  const forma = document.getElementById('pag-forma').value;
+  if (!valor) { toast('Informe o valor'); return; }
+  const ev = state.eventos.find(e => e.id === eventoId);
+  if (!ev) return;
+  ev.atendimentos[idx].pagamentos = ev.atendimentos[idx].pagamentos || [];
+  ev.atendimentos[idx].pagamentos.push({tipo, valor, forma, data: new Date().toISOString()});
+  await atualizarNoBD('eventos', eventoId, {atendimentos: ev.atendimentos});
+  toast('Pagamento registrado!');
+  fecharModal('modal-pagamento');
+  renderFinanceiro();
+  abrirDetalheEvento(eventoId);
+}
+
+// ==================== FINANCEIRO ====================
+function inicializarFiltroMes() {
+  const sel = document.getElementById('fin-mes-sel');
+  if (!sel) return;
+  if (sel.options.length > 0) return; // Já inicializado, não reinicia
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const agora = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(agora.getFullYear(), agora.getMonth() - i, 1);
+    const val = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const label = `${meses[d.getMonth()]} ${d.getFullYear()}`;
+    const opt = document.createElement('option');
+    opt.value = val; opt.textContent = label;
+    if (i === 0) opt.selected = true;
+    sel.appendChild(opt);
+  }
+}
+
+function renderFinanceiro() {
+  inicializarFiltroMes();
+  const sel = document.getElementById('fin-mes-sel');
+  const mesSel = sel ? sel.value : `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+  const [anoSel, mesSel2] = mesSel.split('-').map(Number);
+  const evsMes = state.eventos.filter(e => {
+    const [ano,mes] = e.data.split('-');
+    return parseInt(ano) === anoSel && parseInt(mes) === mesSel2;
+  });
+  let total=0, comissoes=0, recebido=0;
+  const formas = {};
+  evsMes.forEach(ev => {
+    total += ev.deslocamento || 0;
+    recebido += ev.deslocamento || 0;
+    (ev.atendimentos||[]).forEach(a => {
+      total += a.valor||0;
+      const totSv = (a.servicos||[]).reduce((sv,sr)=>sv+(sr.valor||0),0);
+      total += totSv;
+      comissoes += totSv*(a.comissao_pct||0)/100;
+      (a.pagamentos||[]).forEach(p => {
+        recebido += p.valor||0;
+        formas[p.forma] = (formas[p.forma]||0) + p.valor;
+      });
+    });
+  });
+  const pendente = total - recebido;
+  const liquido = recebido - comissoes;
+  document.getElementById('fin-total').textContent = `R$ ${recebido.toFixed(2)}`;
+  document.getElementById('fin-liquido').textContent = `R$ ${liquido.toFixed(2)}`;
+  document.getElementById('fin-comissoes').textContent = `R$ ${comissoes.toFixed(2)}`;
+  document.getElementById('fin-pendente').textContent = `R$ ${pendente.toFixed(2)}`;
+
+  // Monta comissões por colaboradora com detalhe por evento
+  const porColabPendente = {};
+  const porColabPago = {};
+  evsMes.forEach(ev => {
+    const [ano,mes,dia] = ev.data.split('-');
+    const dataLabel = `${dia}/${mes}/${ano}`;
+    (ev.atendimentos||[]).forEach(a => {
+      if (!a.colab_id) return;
+      const pagoKey = `comissao_paga_${a.colab_id}_${ev.id}_${mesSel}`;
+      const pago = localStorage.getItem(pagoKey) === 'true';
+      const colab = state.colaboradoras.find(c => c.id === a.colab_id);
+      const totSvFin = (a.servicos||[]).reduce((sv,sr)=>sv+(sr.valor||0),0);
+      const valComissao = totSvFin*(a.comissao_pct||0)/100;
+      if (valComissao <= 0) return; // Ignora atendimentos sem valor
+      const target = pago ? porColabPago : porColabPendente;
+      if (!target[a.colab_id]) {
+        target[a.colab_id] = {id: a.colab_id, nome: a.colab_nome, pix: colab?.pix||'', total:0, eventos:[]};
+      }
+      target[a.colab_id].total += valComissao;
+      const servicosComValor = (a.servicos||[]).filter(s => s.valor > 0).map(s => s.nome).join(', ');
+      target[a.colab_id].eventos.push({
+        eventoId: ev.id, eventoNome: ev.nome, dataLabel, valComissao, pagoKey, pago,
+        clienteNome: a.cliente_nome, servico: servicosComValor
+      });
+    });
+  });
+
+  // Render pendentes
+  const renderCardColab = (c, isPago) => `
+    <div style="border:1px solid var(--cinza-borda);border-radius:var(--radius-sm);padding:12px;margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="font-weight:500;font-size:15px;">${c.nome}</span>
+        <span style="font-weight:500;color:${isPago?'var(--verde)':'var(--rosa)'};">R$ ${c.total.toFixed(2)}</span>
+      </div>
+      ${c.eventos.map(e => `
+        <div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-top:1px solid var(--cinza-borda);">
+          <span style="color:var(--texto-sec);">${e.dataLabel} · ${e.eventoNome}<br><span style="color:var(--texto-sec);">${e.clienteNome||''} · ${e.servico||''}</span></span>
+          <span style="font-weight:500;white-space:nowrap;margin-left:8px;">R$ ${e.valComissao.toFixed(2)}</span>
+        </div>
+      `).join('')}
+      ${c.pix ? `<div class="pix-box" style="margin-top:10px;"><span class="pix-chave">${c.pix}</span><button class="btn-copiar" onclick="copiarPix('${c.pix}')">Copiar PIX</button></div>` : ''}
+      <button class="btn ${isPago?'btn-outline':'btn-success'} btn-sm" style="width:100%;justify-content:center;margin-top:10px;"
+        onclick="confirmarComissaoColab('${c.id}','${mesSel}',${isPago?'false':'true'})">
+        ${isPago ? '↩ Desfazer pagamento' : '✓ Confirmar pagamento'}
+      </button>
+    </div>`;
+
+  const pendentesEl = document.getElementById('comissoes-pendentes');
+  const pagosEl = document.getElementById('comissoes-pagas');
+  pendentesEl.innerHTML = Object.values(porColabPendente).length === 0
+    ? '<div style="color:var(--texto-sec);font-size:13px;">Nenhuma comissão pendente 🎉</div>'
+    : Object.values(porColabPendente).map(c => renderCardColab(c, false)).join('');
+  pagosEl.innerHTML = Object.values(porColabPago).length === 0
+    ? '<div style="color:var(--texto-sec);font-size:13px;">Nenhuma comissão paga neste período</div>'
+    : Object.values(porColabPago).map(c => renderCardColab(c, true)).join('');
+
+  // Histórico por colaboradora (todos os meses)
+  const histEl = document.getElementById('historico-colaboradoras');
+  const histPorColab = {};
+  state.colaboradoras.forEach(c => { histPorColab[c.id] = {nome: c.nome, meses: {}}; });
+  state.eventos.forEach(ev => {
+    const [ano, mesEv] = ev.data.split('-');
+    const chMes = `${ano}-${mesEv}`;
+    (ev.atendimentos||[]).forEach(a => {
+      if (!a.colab_id || !histPorColab[a.colab_id]) return;
+      const totSvH = (a.servicos||[]).reduce((s,sv)=>s+(sv.valor||0),0);
+      if (totSvH <= 0) return;
+      const pagoKey = `comissao_paga_${a.colab_id}_${ev.id}_${chMes}`;
+      if (localStorage.getItem(pagoKey) === 'true') {
+        if (!histPorColab[a.colab_id].meses[chMes]) histPorColab[a.colab_id].meses[chMes] = 0;
+        histPorColab[a.colab_id].meses[chMes] += totSvH*(a.comissao_pct||0)/100;
+      }
+    });
+  });
+  const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  histEl.innerHTML = Object.values(histPorColab).filter(c => Object.keys(c.meses).length > 0).map(c => `
+    <div style="margin-bottom:14px;">
+      <div style="font-weight:500;margin-bottom:6px;">${c.nome}</div>
+      ${Object.entries(c.meses).sort().map(([m, v]) => {
+        const [a, ms] = m.split('-');
+        return `<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid var(--cinza-borda);">
+          <span style="color:var(--texto-sec);">${meses[parseInt(ms)-1]} ${a}</span>
+          <span style="color:var(--verde);font-weight:500;">R$ ${v.toFixed(2)}</span>
+        </div>`;
+      }).join('')}
+    </div>
+  `).join('') || '<div style="color:var(--texto-sec);font-size:13px;">Nenhum pagamento confirmado ainda</div>';
+
+  // Gráfico formas de pagamento
+  const maxVal = Math.max(...Object.values(formas), 1);
+  document.getElementById('grafico-pagamentos').innerHTML = Object.entries(formas).map(([forma, val]) => `
+    <div class="grafico-barra">
+      <div class="barra-label"><span>${forma}</span><span>R$ ${val.toFixed(2)}</span></div>
+      <div class="barra-bg"><div class="barra-fill" style="width:${Math.round(val/maxVal*100)}%"></div></div>
+    </div>
+  `).join('') || '<div style="color:var(--texto-sec);font-size:13px;">Nenhum pagamento no período</div>';
+}
+
+function confirmarPagamentoComissao(colabId, mes, pago, keys) {
+  const keysArr = typeof keys === 'string' ? JSON.parse(keys) : (keys || []);
+  keysArr.forEach(k => localStorage.setItem(k, pago.toString()));
+  toast(pago === 'true' || pago === true ? 'Comissão marcada como paga! ✓' : 'Pagamento desfeito');
+  renderFinanceiro();
+}
+
+function confirmarComissaoColab(colabId, mes, pagoStr) {
+  const pago = (pagoStr === 'true' || pagoStr === true);
+  const [anoSel, mesSel2] = mes.split('-').map(Number);
+  state.eventos.forEach(ev => {
+    const [ano, m] = ev.data.split('-');
+    if (parseInt(ano) !== anoSel || parseInt(m) !== mesSel2) return;
+    (ev.atendimentos||[]).forEach(a => {
+      if (a.colab_id !== colabId) return;
+      const totSv = (a.servicos||[]).reduce((s,sv)=>s+(sv.valor||0),0);
+      if (totSv <= 0) return;
+      const pagoKey = `comissao_paga_${colabId}_${ev.id}_${mes}`;
+      localStorage.setItem(pagoKey, String(pago));
+    });
+  });
+  toast(pago ? 'Comissão marcada como paga! ✓' : 'Pagamento desfeito');
+  renderFinanceiro();
+}
+
+// ==================== SERVIÇOS ====================
+function renderServicos() {
+  const container = document.getElementById('lista-servicos');
+  if (!container) return;
+  if (state.servicos.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">✂️</div><div class="empty-text">Nenhum serviço cadastrado</div></div>`;
+    return;
+  }
+  container.innerHTML = `<div class="card">` + state.servicos.map((s, idx) => `
+    <div class="lista-item">
+      <div class="avatar" style="background:var(--rosa-light);color:var(--rosa);">✂</div>
+      <div class="lista-info">
+        <div class="lista-nome">${s.nome}</div>
+      </div>
+      <button onclick="excluirServico(${idx})" style="background:none;border:none;color:#dc2626;cursor:pointer;padding:8px;font-size:18px;">✕</button>
+    </div>
+  `).join('') + `</div>`;
+}
+
+function abrirModalServico() {
+  document.getElementById('srv-nome').value = '';
+  abrirModal('modal-servico');
+}
+
+function salvarServico() {
+  const nome = document.getElementById('srv-nome').value.trim();
+  if (!nome) { toast('Informe o nome do serviço'); return; }
+  if (state.servicos.find(s => s.nome.toLowerCase() === nome.toLowerCase())) { toast('Serviço já cadastrado'); return; }
+  state.servicos.push({nome});
+  localStorage.setItem('servicos', JSON.stringify(state.servicos));
+  toast('Serviço salvo!');
+  fecharModal('modal-servico');
+  renderServicos();
+}
+
+function excluirServico(idx) {
+  if (!confirm('Excluir este serviço?')) return;
+  state.servicos.splice(idx, 1);
+  localStorage.setItem('servicos', JSON.stringify(state.servicos));
+  renderServicos();
+  toast('Serviço removido');
+}
+
+function abrirSelServicos(atendIdx) {
+  state.selServicosAtendIdx = atendIdx;
+  const a = state.atendimentosEvento[atendIdx];
+  const container = document.getElementById('sel-servicos-lista');
+  if (state.servicos.length === 0) {
+    fecharModal('modal-sel-servicos');
+    toast('Cadastre serviços na aba Serviços primeiro!');
+    return;
+  }
+  container.innerHTML = state.servicos.map(s => {
+    const jaSel = (a.servicos||[]).find(sv => sv.nome === s.nome);
+    return `
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--cinza-borda);">
+      <input type="checkbox" ${jaSel?'checked':''} id="chk-srv-${s.nome.replace(/\s/g,'_')}"
+        style="width:20px;height:20px;accent-color:var(--rosa);flex-shrink:0;"
+        onchange="toggleServicoSel('${s.nome}',this.checked)">
+      <label for="chk-srv-${s.nome.replace(/\s/g,'_')}" style="font-size:15px;cursor:pointer;flex:1;">${s.nome}</label>
+    </div>`;
+  }).join('');
+  abrirModal('modal-sel-servicos');
+}
+
+function toggleServicoSel(nomeServico, checked) {
+  const idx = state.selServicosAtendIdx;
+  if (!state.atendimentosEvento[idx].servicos) state.atendimentosEvento[idx].servicos = [];
+  if (checked) {
+    if (!state.atendimentosEvento[idx].servicos.find(s => s.nome === nomeServico)) {
+      state.atendimentosEvento[idx].servicos.push({nome: nomeServico, valor: 0});
+    }
+  } else {
+    state.atendimentosEvento[idx].servicos = state.atendimentosEvento[idx].servicos.filter(s => s.nome !== nomeServico);
+  }
+  renderAtendimentosForm();
+}
+
+// ==================== INIT ====================
+document.addEventListener('DOMContentLoaded', () => {
+  verificarTokenGoogle();
+  carregarDados().then(() => {
+    renderCalendario();
+    renderColabSelect();
+    document.getElementById('ev-data').value = formatData(new Date());
+  });
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('aberto'); });
+  });
+});
+</script>
+</body>
+</html>
