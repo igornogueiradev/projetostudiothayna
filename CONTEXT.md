@@ -137,3 +137,8 @@ Layout mobile-first, max-width 480px, nav fixa no fundo.
 
 ### 2026-05-29
 - Criação do arquivo `CONTEXT.md` com documentação completa do projeto
+- **Fix:** algoritmo `distribuirAutomatico()` reformulado para o **Caso A** (sem duplas + todas as colaboradoras executam todos os serviços):
+  - Antes: distribuía serviço a serviço com pontuação, onde o bônus `horaFixaAtivada` (+5.000.000) podia superar a penalidade de "outra collab já iniciou este cliente" (-500.000), dividindo um mesmo cliente entre colaboradoras
+  - Agora: **Fase 1** — atribui CLIENTES (não serviços) às colaboradoras via round-robin por menor carga; **Fase 2** — agenda todos os serviços de cada cliente em sequência com a mesma colaboradora (sem interrupção)
+  - Regras respeitadas: (a) igual número de clientes por colaboradora; (b) todos os serviços de um cliente ficam com a mesma colaboradora; (c) cliente em sequência MAKE→CABELO nunca é pausado por outra cliente com hora fixa; (d) clientes com hora fixa têm prioridade quando o horário chega, mas clientes sem hora fixa preenchem os intervalos se couberem inteiros antes do próximo hora fixa
+  - Casos B/C (duplas ou restrição de serviço por colaboradora) mantêm o loop original inalterado

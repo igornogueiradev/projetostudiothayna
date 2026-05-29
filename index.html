@@ -2230,73 +2230,166 @@ function distribuirAutomatico() {
     });
   }
 
-  // ====== LOOP PRINCIPAL: serviços restantes (não cobertos pelas duplas) ======
-  const fila = state.colabsEvento.map(c => ({ tempo: colabFreeTime[c.id], colabId: c.id }));
-  const seguranca = totalServicos * state.colabsEvento.length * 4;
-  let iter = 0;
+  // ====== LOOP PRINCIPAL ======
+  // Caso A: sem duplas + todas as colaboradoras executam todos os serviços
+  //   → distribui por CLIENTE (igual nº de clientes, sem dividir serviços do mesmo cliente)
+  //   → cliente em sequência (ex: MAKE→CABELO) nunca é interrompido por outra cliente
+  // Caso B/C: duplas ou restrição de serviço por colaboradora → loop serviço-a-serviço original
+  const todasSemRestricao = state.colabsEvento.every(c => (c.servicos || []).length === 0);
+  const isCasoA = duplasValidas.length === 0 && todasSemRestricao;
+  const clientesPendentes = clState.filter(cs => cs.pendentes.length > 0);
 
-  while (fila.length > 0 && agendados < totalServicos && iter++ < seguranca) {
-    fila.sort((a, b) => a.tempo - b.tempo);
-    const { tempo: tColab, colabId } = fila.shift();
-    const colab = state.colabsEvento.find(c => c.id === colabId);
-    const colabSvs = colab.servicos || [];
+  if (isCasoA && clientesPendentes.length > 0) {
+    // 1. Atribui clientes às colaboradoras: round-robin por menor nº de clientes atribuídos
+    const colabClientCount = {};
+    const colabClientsList = {};
+    state.colabsEvento.forEach(c => { colabClientCount[c.id] = 0; colabClientsList[c.id] = []; });
 
-    let melhor = null, melhorScore = -Infinity;
-    clState.forEach((cs, csIdx) => {
-      cs.pendentes.forEach((sv, svIdx) => {
-        if (colabSvs.length > 0 && !colabSvs.includes(sv.nome)) return;
-        const inicio = Math.max(tColab, cs.livre);
-        const emProgresso = cs.agendados > 0;
-        const prontoAgora = cs.livre <= tColab;
-        const horaFixaAtivada = cs.atend.hora_fixa && cs.livre <= tColab;
-        const ociosidade = Math.max(0, cs.livre - tColab);
-        // Bônus de "em progresso" só para a collab que já atendeu este cliente.
-        // Outra collab recebe penalidade forte → loop avança e espera a collab certa.
-        const fezAntes = (cs.atend.servicos||[]).some(sv => sv.colab_id === colabId && sv.hora_inicio);
-        // Penaliza sempre que outra collab já iniciou este cliente (fezAntes=false),
-        // mesmo quando o cliente ainda não está pronto (prontoAgora=false)
-        let emProgressoBonus = 0;
-        if (emProgresso) {
-          if (!fezAntes) {
-            emProgressoBonus = -500_000; // outra collab é a responsável — não interferir
-          } else if (prontoAgora) {
-            emProgressoBonus = 10_000_000; // prioridade máxima para continuar com o próprio cliente
-          }
-        }
-        // Balanceamento de carga: penaliza colaboradora com mais serviços já atribuídos,
-        // evitando que uma collab domine enquanto outra fica ociosa
-        const colabLoad = state.atendimentosEvento.reduce((n, a) =>
-          n + (a.servicos||[]).filter(sv => sv.colab_id === colabId && sv.hora_inicio).length, 0);
-        const score = emProgressoBonus +
-                      (horaFixaAtivada ? 5_000_000 : 0) +
-                      cs.pendentes.length * 10_000 -
-                      colabLoad * 3_000 -
-                      ociosidade * 500 - inicio;
-        if (score > melhorScore) { melhorScore = score; melhor = { csIdx, svIdx, sv, inicio }; }
-      });
+    // Ordena para distribuição: hora_fixa primeiro (pelo horário), depois mais serviços
+    const ordenados = [...clientesPendentes].sort((a, b) => {
+      const aT = a.atend.hora_fixa ? tempoParaMinutos(a.atend.hora_fixa) : 999999;
+      const bT = b.atend.hora_fixa ? tempoParaMinutos(b.atend.hora_fixa) : 999999;
+      if (aT !== bT) return aT - bT;
+      return b.pendentes.length - a.pendentes.length;
     });
 
-    // Avança o tempo se não há cliente disponível OU se o melhor tem penalidade forte
-    // (penalidade forte = outra collab já iniciou o atendimento e deve completá-lo)
-    if (!melhor || melhorScore < -100_000) {
-      let proxLivre = Infinity;
-      clState.forEach(cs => cs.pendentes.forEach(sv => {
-        if (colabSvs.length === 0 || colabSvs.includes(sv.nome)) {
-          if (cs.livre > tColab) proxLivre = Math.min(proxLivre, cs.livre);
-        }
-      }));
-      if (proxLivre < Infinity) fila.push({ tempo: proxLivre, colabId });
-      continue;
-    }
+    ordenados.forEach(cs => {
+      const cols = [...state.colabsEvento].sort((a, b) => {
+        if (colabClientCount[a.id] !== colabClientCount[b.id])
+          return colabClientCount[a.id] - colabClientCount[b.id];
+        return colabFreeTime[a.id] - colabFreeTime[b.id];
+      });
+      const escolhida = cols[0];
+      colabClientCount[escolhida.id]++;
+      colabClientsList[escolhida.id].push(cs);
+    });
 
-    const { csIdx, svIdx, sv, inicio } = melhor;
-    const fim = inicio + getDuracao(sv.nome);
-    doAssign(sv, colabId, colab.nome, inicio, fim);
-    clState[csIdx].livre = fim;
-    clState[csIdx].pendentes.splice(svIdx, 1);
-    clState[csIdx].agendados++;
-    agendados++;
-    fila.push({ tempo: fim, colabId });
+    // 2. Agenda serviços de cada colaboradora respeitando hora_fixa e continuidade
+    state.colabsEvento.forEach(c => {
+      const restantes = [...colabClientsList[c.id]];
+      let t = colabFreeTime[c.id];
+
+      while (restantes.length > 0) {
+        // Menor hora_fixa ainda pendente
+        const proxFixaT = restantes
+          .filter(cs => cs.atend.hora_fixa)
+          .reduce((min, cs) => Math.min(min, tempoParaMinutos(cs.atend.hora_fixa)), Infinity);
+
+        // Clientes com hora_fixa cuja hora já chegou (prioridade máxima)
+        const horaFixaAgora = restantes.filter(cs =>
+          cs.atend.hora_fixa && tempoParaMinutos(cs.atend.hora_fixa) <= t
+        );
+
+        // Clientes sem hora_fixa que cabem inteiros antes do próximo hora_fixa
+        const cabeAntes = restantes.filter(cs => {
+          if (cs.atend.hora_fixa) return false;
+          const durTotal = cs.pendentes.reduce((s, sv) => s + getDuracao(sv.nome), 0);
+          return t + durTotal <= proxFixaT;
+        });
+
+        let proximo;
+        if (horaFixaAgora.length > 0) {
+          // Hora_fixa chegou → atende esse cliente primeiro
+          proximo = horaFixaAgora.sort((a, b) =>
+            tempoParaMinutos(a.atend.hora_fixa) - tempoParaMinutos(b.atend.hora_fixa)
+          )[0];
+        } else if (cabeAntes.length > 0) {
+          // Cliente sem hora_fixa cabe antes do próximo hora_fixa → aproveita o tempo
+          proximo = cabeAntes.sort((a, b) => b.pendentes.length - a.pendentes.length)[0];
+        } else if (proxFixaT < Infinity) {
+          // Ninguém cabe antes → aguarda o próximo hora_fixa
+          t = proxFixaT;
+          proximo = restantes.find(cs =>
+            cs.atend.hora_fixa && tempoParaMinutos(cs.atend.hora_fixa) === proxFixaT
+          );
+        } else {
+          // Só restam clientes sem hora_fixa → serve o que tem mais serviços
+          proximo = restantes.sort((a, b) => b.pendentes.length - a.pendentes.length)[0];
+        }
+
+        if (!proximo) break;
+
+        if (proximo.atend.hora_fixa) {
+          t = Math.max(t, tempoParaMinutos(proximo.atend.hora_fixa));
+        }
+
+        // Agenda TODOS os serviços do cliente em sequência sem interrupção
+        // (garante continuidade: MAKE→CABELO nunca é pausado por outra cliente)
+        [...proximo.pendentes].forEach(sv => {
+          const dur = getDuracao(sv.nome);
+          doAssign(sv, c.id, c.nome, t, t + dur);
+          t += dur;
+          agendados++;
+        });
+        proximo.pendentes.length = 0;
+        proximo.agendados = (proximo.atend.servicos || []).length;
+        restantes.splice(restantes.indexOf(proximo), 1);
+      }
+
+      colabFreeTime[c.id] = t;
+    });
+
+  } else {
+    // Caso B/C: duplas ou colaboradoras com serviços restritos → loop serviço-a-serviço
+    const fila = state.colabsEvento.map(c => ({ tempo: colabFreeTime[c.id], colabId: c.id }));
+    const seguranca = totalServicos * state.colabsEvento.length * 4;
+    let iter = 0;
+
+    while (fila.length > 0 && agendados < totalServicos && iter++ < seguranca) {
+      fila.sort((a, b) => a.tempo - b.tempo);
+      const { tempo: tColab, colabId } = fila.shift();
+      const colab = state.colabsEvento.find(c => c.id === colabId);
+      const colabSvs = colab.servicos || [];
+
+      let melhor = null, melhorScore = -Infinity;
+      clState.forEach((cs, csIdx) => {
+        cs.pendentes.forEach((sv, svIdx) => {
+          if (colabSvs.length > 0 && !colabSvs.includes(sv.nome)) return;
+          const inicio = Math.max(tColab, cs.livre);
+          const emProgresso = cs.agendados > 0;
+          const prontoAgora = cs.livre <= tColab;
+          const horaFixaAtivada = cs.atend.hora_fixa && cs.livre <= tColab;
+          const ociosidade = Math.max(0, cs.livre - tColab);
+          const fezAntes = (cs.atend.servicos||[]).some(sv => sv.colab_id === colabId && sv.hora_inicio);
+          let emProgressoBonus = 0;
+          if (emProgresso) {
+            if (!fezAntes) {
+              emProgressoBonus = -500_000;
+            } else if (prontoAgora) {
+              emProgressoBonus = 10_000_000;
+            }
+          }
+          const colabLoad = state.atendimentosEvento.reduce((n, a) =>
+            n + (a.servicos||[]).filter(sv => sv.colab_id === colabId && sv.hora_inicio).length, 0);
+          const score = emProgressoBonus +
+                        (horaFixaAtivada ? 5_000_000 : 0) +
+                        cs.pendentes.length * 10_000 -
+                        colabLoad * 3_000 -
+                        ociosidade * 500 - inicio;
+          if (score > melhorScore) { melhorScore = score; melhor = { csIdx, svIdx, sv, inicio }; }
+        });
+      });
+
+      if (!melhor || melhorScore < -100_000) {
+        let proxLivre = Infinity;
+        clState.forEach(cs => cs.pendentes.forEach(sv => {
+          if (colabSvs.length === 0 || colabSvs.includes(sv.nome)) {
+            if (cs.livre > tColab) proxLivre = Math.min(proxLivre, cs.livre);
+          }
+        }));
+        if (proxLivre < Infinity) fila.push({ tempo: proxLivre, colabId });
+        continue;
+      }
+
+      const { csIdx, svIdx, sv, inicio } = melhor;
+      const fim = inicio + getDuracao(sv.nome);
+      doAssign(sv, colabId, colab.nome, inicio, fim);
+      clState[csIdx].livre = fim;
+      clState[csIdx].pendentes.splice(svIdx, 1);
+      clState[csIdx].agendados++;
+      agendados++;
+      fila.push({ tempo: fim, colabId });
+    }
   }
 
   // Atualizar campos auxiliares dos atendimentos com o primeiro serviço agendado
