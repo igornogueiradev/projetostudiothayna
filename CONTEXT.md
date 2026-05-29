@@ -142,3 +142,12 @@ Layout mobile-first, max-width 480px, nav fixa no fundo.
   - Agora: **Fase 1** — atribui CLIENTES (não serviços) às colaboradoras via round-robin por menor carga; **Fase 2** — agenda todos os serviços de cada cliente em sequência com a mesma colaboradora (sem interrupção)
   - Regras respeitadas: (a) igual número de clientes por colaboradora; (b) todos os serviços de um cliente ficam com a mesma colaboradora; (c) cliente em sequência MAKE→CABELO nunca é pausado por outra cliente com hora fixa; (d) clientes com hora fixa têm prioridade quando o horário chega, mas clientes sem hora fixa preenchem os intervalos se couberem inteiros antes do próximo hora fixa
   - Casos B/C (duplas ou restrição de serviço por colaboradora) mantêm o loop original inalterado
+- **Fix 2 (refatoração completa):** algoritmo `distribuirAutomatico()` reescrito para suportar todos os cenários de evento:
+  - **Unidade de distribuição**: igual número de **serviços executados** por colaboradora (não clientes)
+  - **Decisão manter-junto vs dividir**: para cada cliente, simula as duas opções e escolhe a que produz menor diferença max−min de serviços entre collabs; se empate, prefere manter junto
+  - **Collabs completas**: collab que executa todos os serviços de um cliente pode recebê-lo inteiro
+  - **Divisão**: quando dividir equilibra melhor, cada serviço vai para a collab elegível de menor carga
+  - **Ordem de serviços**: garantida via `cs.livre` (ex: MAKE sempre antes de CABELO — serviço N só começa após N-1 terminar, mesmo que sejam collabs diferentes)
+  - **Hora_fixa**: respeitada no agendamento; clientes sem hora_fixa preenchem lacunas quando cabem inteiros antes do próximo horário fixo
+  - **Detecção automática**: não depende de "sem restrição" — funciona com qualquer combinação de serviços por collab configurada nos checkboxes do evento
+  - **Duplas**: pré-passo mantido; contagem de serviços já atribuídos pelas duplas é considerada no balanço dos demais clientes
