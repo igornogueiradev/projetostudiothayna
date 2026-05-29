@@ -2289,21 +2289,13 @@ function distribuirAutomatico() {
     // (ex: DANI=MAKE+CABELO e PAULA=MAKE+CABELO: cliente não é dividido entre elas)
     // Só considera dividir quando há no máximo 1 collab completa (caso assimétrico)
     const forcarJunto = colabsCompletas.length >= 2;
-    console.log('[Distribuir]', cs.atend.cliente_nome,
-      '| svs:', cs.pendentes.map(s=>s.nome).join('+'),
-      '| colabsCompletas:', colabsCompletas.map(c=>c.nome).join(','),
-      '| forcarJunto:', forcarJunto,
-      '| imbalance together/split:', togetherImbalance, '/', splitImbalance,
-      '| colabServicos:', state.colabsEvento.map(c=>c.nome+':'+JSON.stringify(c.servicos)).join(' | '));
     if (togetherCollab && (forcarJunto || togetherImbalance <= splitImbalance)) {
       // Manter junto: todos os serviços com a mesma collab
-      console.log('  → MANTER JUNTO com', togetherCollab.nome);
       cs.pendentes.forEach(sv => { sv._collab = togetherCollab.id; });
       colabServiceCount[togetherCollab.id] = (colabServiceCount[togetherCollab.id] || 0) + cs.pendentes.length;
       keepTogetherClients.push(cs);
     } else {
       // Dividir: cada serviço com a collab atribuída individualmente
-      console.log('  → DIVIDIR:', cs.pendentes.map((sv,i)=>sv.nome+'→'+(state.colabsEvento.find(c=>c.id===splitAssignment[i])?.nome||'?')).join(', '));
       cs.pendentes.forEach((sv, i) => { sv._collab = splitAssignment[i]; });
       splitAssignment.forEach(id => { if (id) colabServiceCount[id] = (colabServiceCount[id] || 0) + 1; });
       splitClients.push(cs);
