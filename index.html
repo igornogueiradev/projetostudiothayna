@@ -67,6 +67,11 @@
   .btn-primary:active { background: var(--rosa-dark); transform: scale(0.98); }
   .btn-outline { background: transparent; border: 1px solid var(--cinza-borda); color: var(--texto); }
   .btn-outline:active { background: var(--cinza-light); }
+  .grade-cell { cursor:pointer; user-select:none; transition:background 0.1s; }
+  .grade-cell.grade-sel { outline:2px solid #f59e0b !important; outline-offset:-2px; }
+  .grade-cell.grade-dragover { background:#fde68a !important; }
+  .grade-cell[draggable="true"] { cursor:grab; }
+  .grade-vazia { cursor:default; }
   .btn-sm { padding: 8px 14px; font-size: 13px; }
   .btn-danger { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
   .btn-success { background: var(--verde-light); color: var(--verde); border: 1px solid #b7e5d0; }
@@ -235,17 +240,25 @@
   </div>
 
   <!-- SERVIÇOS -->
-  <div class="tela" id="tela-servicos">
-    <div class="secao-titulo">Serviços</div>
-    <div class="secao-sub">Serviços disponíveis para atendimento</div>
-    <div id="lista-servicos"></div>
-  </div>
-
-  <!-- COLABORADORAS -->
+  <!-- COLABORADORAS + SERVIÇOS (unificado) -->
   <div class="tela" id="tela-colaboradoras">
-    <div class="secao-titulo">Colaboradoras</div>
-    <div class="secao-sub">Equipe e comissões</div>
-    <div id="lista-colaboradoras"></div>
+    <div class="secao-titulo">Equipe</div>
+    <div style="display:flex;border:1px solid var(--cinza-borda);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:16px;">
+      <button id="equipe-tab-colab" onclick="equipeTab('colab')"
+        style="flex:1;padding:9px 0;font-size:13px;border:none;background:var(--rosa);color:#fff;font-weight:500;cursor:pointer;">
+        Colaboradoras
+      </button>
+      <button id="equipe-tab-serv" onclick="equipeTab('serv')"
+        style="flex:1;padding:9px 0;font-size:13px;border:none;background:transparent;color:var(--texto-sec);cursor:pointer;">
+        Serviços
+      </button>
+    </div>
+    <div id="equipe-colab-section">
+      <div id="lista-colaboradoras"></div>
+    </div>
+    <div id="equipe-serv-section" style="display:none;">
+      <div id="lista-servicos"></div>
+    </div>
   </div>
 
   <!-- FINANCEIRO -->
@@ -307,10 +320,6 @@
     Eventos
   </button>
 
-  <button class="nav-item" onclick="navegar('servicos', this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-    Serviços
-  </button>
   <button class="nav-item" onclick="navegar('colaboradoras', this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
     Equipe
@@ -359,7 +368,24 @@
     <hr class="separador">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
       <div style="font-weight:500; font-size:14px;">Clientes do evento</div>
-      <button class="btn btn-outline btn-sm" onclick="adicionarAtendimento()">+ Cliente</button>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-outline btn-sm" onclick="toggleImportWpp()" title="Colar lista do WhatsApp">📋 Colar lista</button>
+        <button class="btn btn-outline btn-sm" onclick="adicionarAtendimento()">+ Cliente</button>
+      </div>
+    </div>
+    <div id="import-wpp-box" style="display:none;margin-bottom:12px;padding:12px;background:var(--cinza-light);border-radius:var(--radius-sm);">
+      <div style="font-size:12px;color:var(--texto-sec);margin-bottom:8px;">Cole a lista do WhatsApp — uma cliente por linha:</div>
+      <div style="font-size:11px;font-family:monospace;color:var(--texto-sec);margin-bottom:8px;line-height:1.6;">
+        Maria - Make + Cabelo - 10h<br>
+        Ana - Maquiagem<br>
+        Julia - Cabelo - 11:30
+      </div>
+      <textarea id="import-wpp-texto" rows="6" class="form-input" style="font-size:13px;font-family:monospace;"
+        placeholder="Cole aqui..."></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn btn-primary btn-sm" onclick="importarListaWpp()">✓ Importar clientes</button>
+        <button class="btn btn-outline btn-sm" onclick="toggleImportWpp()">Cancelar</button>
+      </div>
     </div>
     <div id="atendimentos-form"></div>
     <div id="duplas-container"></div>
@@ -548,6 +574,25 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-grade-interativa">
+  <div class="modal" style="max-width:98vw;width:1200px;max-height:92vh;display:flex;flex-direction:column;">
+    <div class="modal-handle"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div class="modal-titulo" style="margin:0;">📊 Grade interativa</div>
+      <button onclick="fecharModal('modal-grade-interativa')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--texto-sec);">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--texto-sec);margin-bottom:10px;">
+      Clique para selecionar clientes na mesma coluna • Arraste para reposicionar • Solte sobre outra colaboradora para transferir
+    </div>
+    <div id="grade-interativa-conteudo" style="overflow:auto;flex:1;"></div>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--borda);">
+      <button class="btn btn-outline btn-sm" onclick="exportarCronogramaExcel()">⬇ Baixar Excel</button>
+      <button class="btn btn-outline btn-sm" onclick="_gradeLimparSelecao()">✕ Limpar seleção</button>
+      <button class="btn btn-outline btn-sm" onclick="fecharModal('modal-grade-interativa')">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -599,14 +644,30 @@ function navegar(tela, btn) {
   if (tela === 'financeiro') fab.style.display = 'none';
   if (tela === 'agenda') { renderCalendario(); fab.style.display = 'flex'; }
   if (tela === 'eventos') renderEventos();
-  if (tela === 'servicos') renderServicos();
-  if (tela === 'colaboradoras') renderColaboradoras();
+  if (tela === 'colaboradoras') { renderColaboradoras(); renderServicos(); }
   if (tela === 'financeiro') renderFinanceiro();
 }
 
+function equipeTab(aba) {
+  const isColab = aba === 'colab';
+  document.getElementById('equipe-colab-section').style.display = isColab ? 'block' : 'none';
+  document.getElementById('equipe-serv-section').style.display = isColab ? 'none' : 'block';
+  const tabColab = document.getElementById('equipe-tab-colab');
+  const tabServ = document.getElementById('equipe-tab-serv');
+  if (tabColab && tabServ) {
+    tabColab.style.background = isColab ? 'var(--rosa)' : 'transparent';
+    tabColab.style.color = isColab ? '#fff' : 'var(--texto-sec)';
+    tabServ.style.background = isColab ? 'transparent' : 'var(--rosa)';
+    tabServ.style.color = isColab ? 'var(--texto-sec)' : '#fff';
+  }
+  state._equipeAba = aba;
+}
+
 function abrirModalPrincipal() {
-  if (state.telaAtual === 'servicos') { abrirModalServico(); return; }
-  if (state.telaAtual === 'colaboradoras') { abrirModalColaboradora(); return; }
+  if (state.telaAtual === 'colaboradoras') {
+    if (state._equipeAba === 'serv') { abrirModalServico(); return; }
+    abrirModalColaboradora(); return;
+  }
   abrirModalEvento();
 }
 
@@ -1204,6 +1265,87 @@ function adicionarAtendimento() {
   renderAtendimentosForm();
 }
 
+function toggleImportWpp() {
+  const box = document.getElementById('import-wpp-box');
+  const show = box.style.display === 'none';
+  box.style.display = show ? 'block' : 'none';
+  if (show) { document.getElementById('import-wpp-texto').value = ''; document.getElementById('import-wpp-texto').focus(); }
+}
+
+function _wppMatchServico(texto) {
+  const t = texto.toLowerCase().trim();
+  if (!t) return null;
+  // Tenta match direto nos serviços cadastrados (exato ou parcial)
+  let sv = state.servicos.find(s => s.nome.toLowerCase() === t);
+  if (sv) return sv.nome;
+  sv = state.servicos.find(s => t.includes(s.nome.toLowerCase()) || s.nome.toLowerCase().includes(t));
+  if (sv) return sv.nome;
+  // Fallback por palavras-chave comuns
+  if (/make|maquiagem|maquiar/i.test(t)) {
+    sv = state.servicos.find(s => /make|maquiagem/i.test(s.nome));
+    if (sv) return sv.nome;
+    return 'Maquiagem';
+  }
+  if (/cab|cabelo|hair/i.test(t)) {
+    sv = state.servicos.find(s => /cab|cabelo/i.test(s.nome));
+    if (sv) return sv.nome;
+    return 'Cabelo';
+  }
+  if (/pente|penteado/i.test(t)) {
+    sv = state.servicos.find(s => /pente/i.test(s.nome));
+    if (sv) return sv.nome;
+    return 'Penteado';
+  }
+  if (/barba|bigode/i.test(t)) return 'Barba';
+  return t.charAt(0).toUpperCase() + t.slice(1); // retorna o texto capitalizado como nome do serviço
+}
+
+function _wppParseHora(texto) {
+  const m = texto.match(/\b(\d{1,2})(?:[h:](\d{2}))?h?\b/i);
+  if (!m) return '';
+  const h = m[1].padStart(2, '0');
+  const min = m[2] ? m[2].padStart(2, '0') : '00';
+  return `${h}:${min}`;
+}
+
+function _wppParseLinha(linha) {
+  const raw = linha.trim();
+  if (!raw) return null;
+  // Divide por " - " respeitando variações de espaço
+  const partes = raw.split(/\s*-\s*/);
+  if (partes.length < 2) return null;
+  const nome = partes[0].trim();
+  if (!nome) return null;
+
+  // Última parte pode ser horário
+  let hora_fixa = '';
+  let servicosPart = '';
+  const ultima = partes[partes.length - 1];
+  if (/\d{1,2}(?:h|:\d{2})/.test(ultima)) {
+    hora_fixa = _wppParseHora(ultima);
+    servicosPart = partes.slice(1, partes.length - 1).join(' ');
+  } else {
+    servicosPart = partes.slice(1).join(' ');
+  }
+
+  // Divide serviços por + ou , ou &
+  const servNomes = servicosPart.split(/\s*[+,&]\s*/).map(s => s.trim()).filter(Boolean);
+  const servicos = servNomes.map(s => ({ nome: _wppMatchServico(s), valor: 0 })).filter(s => s.nome);
+
+  return { cliente_nome: nome, hora_fixa, servicos, colab_id: '', colab_nome: '', comissao_pct: 0, pagamentos: [] };
+}
+
+function importarListaWpp() {
+  const texto = document.getElementById('import-wpp-texto').value;
+  const linhas = texto.split('\n');
+  const novos = linhas.map(_wppParseLinha).filter(Boolean);
+  if (novos.length === 0) { toast('Nenhuma cliente reconhecida. Verifique o formato.'); return; }
+  novos.forEach(a => state.atendimentosEvento.push(a));
+  toggleImportWpp();
+  renderAtendimentosForm();
+  toast(`${novos.length} cliente(s) importada(s)! ✓`);
+}
+
 function sugerirColab(servico) {
   const aptos = state.colabsEvento.filter(c => (c.servicos||[]).includes(servico));
   if (aptos.length === 0) return null;
@@ -1461,6 +1603,240 @@ function atualizarDupla(idx, campo, valor, texto) {
   if (campo === 'colabA') { d.colabA_id = valor; d.colabA_nome = texto; }
   else if (campo === 'colabB') { d.colabB_id = valor; d.colabB_nome = texto; }
   renderDuplas();
+}
+
+// ====== GRADE INTERATIVA ======
+let _gradeData = null;
+let _gradeSelecao = [];
+let _gradeDragSrc = null;
+let _gradeDragOverKey = null;
+
+function buildGradeData() {
+  const colabSchedule = {};
+  state.colabsEvento.forEach(c => {
+    colabSchedule[c.id] = { nome: c.nome, servicos: c.servicos || [], slots: [] };
+  });
+  state.atendimentosEvento.forEach((atend, atendIdx) => {
+    (atend.servicos || []).forEach((sv, svIdx) => {
+      if (!sv.hora_inicio || !sv.colab_id) return;
+      if (!colabSchedule[sv.colab_id]) colabSchedule[sv.colab_id] = { nome: sv.colab_nome, servicos: [], slots: [] };
+      colabSchedule[sv.colab_id].slots.push({ hora_inicio: sv.hora_inicio, hora_fim: sv.hora_fim, cliente: atend.cliente_nome || '—', atendIdx, svIdx });
+    });
+  });
+  const colabsOrdenadas = [];
+  const jaAdicionados = new Set();
+  (state.duplasEvento || []).forEach(d => {
+    [d.colabA_id, d.colabB_id].forEach(id => {
+      if (id && !jaAdicionados.has(id)) {
+        const c = state.colabsEvento.find(x => x.id === id);
+        if (c) { colabsOrdenadas.push(c); jaAdicionados.add(id); }
+      }
+    });
+  });
+  state.colabsEvento.forEach(c => { if (!jaAdicionados.has(c.id)) colabsOrdenadas.push(c); });
+  const colabs = colabsOrdenadas.filter(c => colabSchedule[c.id]?.slots.length > 0);
+  colabs.forEach(c => colabSchedule[c.id].slots.sort((a, b) => tempoParaMinutos(a.hora_inicio) - tempoParaMinutos(b.hora_inicio)));
+  const todasHoras = [...new Set(colabs.flatMap(c => colabSchedule[c.id].slots.map(s => s.hora_inicio)))]
+    .sort((a, b) => tempoParaMinutos(a) - tempoParaMinutos(b));
+  const rows = todasHoras.map(hora => ({
+    timeKey: hora,
+    cells: colabs.map(c => colabSchedule[c.id].slots.find(s => s.hora_inicio === hora) || null)
+  }));
+  return { colabs, rows };
+}
+
+function abrirGradeInterativa() {
+  const agendados = state.atendimentosEvento.filter(a => (a.servicos||[]).some(sv => sv.hora_inicio && sv.colab_id));
+  if (agendados.length === 0) { toast('Distribua primeiro para ver a grade'); return; }
+  _gradeSelecao = [];
+  _gradeDragSrc = null;
+  _gradeDragOverKey = null;
+  _gradeData = buildGradeData();
+  renderGradeInterativa();
+  abrirModal('modal-grade-interativa');
+}
+
+function renderGradeInterativa() {
+  const el = document.getElementById('grade-interativa-conteudo');
+  if (!el || !_gradeData) return;
+  const { colabs, rows } = _gradeData;
+  const verde = '#4e7c3a', verdeClaro = '#8bc34a', linhaA = '#d9ead3', linhaB = '#b6d7a8';
+  const tdBase = 'border:1px solid #bbb;padding:6px 10px;font-size:12px;font-family:Arial;white-space:nowrap;vertical-align:middle;';
+  const thBase = `${tdBase}background:${verdeClaro};font-weight:bold;text-align:center;`;
+
+  const ev = state.eventos.find(e => e.id === state.eventoEditandoId) || { nome: '' };
+  const [ano, mes, dia] = (ev.data || '--').split('-');
+  const dataLabel = ev.data ? ` ${dia}/${mes}/${ano}` : '';
+  const totalCols = colabs.length + 1;
+
+  let html = `<table style="border-collapse:collapse;min-width:100%;">`;
+  html += `<tr><td colspan="${totalCols}" style="${tdBase}background:${verde};color:#fff;font-weight:bold;text-align:center;font-size:13px;">${ev.nome}${dataLabel}</td></tr>`;
+  html += `<tr><td style="${thBase}">#</td>`;
+  colabs.forEach(c => {
+    const svs = (c.servicos || []).map(s => s.charAt(0).toUpperCase()).join('/');
+    html += `<td style="${thBase}">${c.nome}${svs ? ' (' + svs + ')' : ''}</td>`;
+  });
+  html += '</tr>';
+
+  rows.forEach((row, rowIdx) => {
+    const bg = rowIdx % 2 === 0 ? linhaA : linhaB;
+    html += `<tr>`;
+    html += `<td style="${tdBase}background:#eee;color:#999;text-align:center;font-size:10px;">${rowIdx + 1}</td>`;
+    row.cells.forEach((cell, colIdx) => {
+      if (cell) {
+        // Uma única célula por slot (sem dois <td> separados)
+        html += `<td class="grade-cell" data-row="${rowIdx}" data-col="${colIdx}"
+          style="${tdBase}background:${bg};"
+          draggable="true"
+          onclick="_gradeCellClick(${rowIdx},${colIdx})"
+          ondragstart="_gradeDragStart(event,${rowIdx},${colIdx})"
+          ondragend="_gradeDragEnd(event)"
+          ondragover="_gradeDragOver(event,${rowIdx},${colIdx})"
+          ondrop="_gradeDrop(event,${rowIdx},${colIdx})">
+          <div style="font-size:11px;color:#555;font-weight:600;">${cell.hora_inicio} – ${cell.hora_fim}</div>
+          <div style="font-size:13px;">${cell.cliente}</div>
+        </td>`;
+      } else {
+        html += `<td class="grade-vazia" data-row="${rowIdx}" data-col="${colIdx}"
+          style="${tdBase}background:${bg};color:#ccc;text-align:center;"
+          ondragover="_gradeDragOver(event,${rowIdx},${colIdx})"
+          ondrop="_gradeDrop(event,${rowIdx},${colIdx})">—</td>`;
+      }
+    });
+    html += '</tr>';
+  });
+  html += '</table>';
+  html += `<div id="grade-sel-info" style="font-size:12px;color:#f59e0b;font-weight:500;margin-top:8px;min-height:18px;"></div>`;
+  el.innerHTML = html;
+  _gradeAplicarEstadoVisual();
+}
+
+// Atualiza seleção e hover via DOM — sem recriar a tabela
+function _gradeAplicarEstadoVisual() {
+  document.querySelectorAll('#grade-interativa-conteudo .grade-sel').forEach(el => el.classList.remove('grade-sel'));
+  _gradeSelecao.forEach(s => {
+    const cel = document.querySelector(`#grade-interativa-conteudo [data-row="${s.rowIdx}"][data-col="${s.colIdx}"]`);
+    if (cel) cel.classList.add('grade-sel');
+  });
+  document.querySelectorAll('#grade-interativa-conteudo .grade-dragover').forEach(el => el.classList.remove('grade-dragover'));
+  if (_gradeDragOverKey) {
+    const [r, c] = _gradeDragOverKey.split('_');
+    const cel = document.querySelector(`#grade-interativa-conteudo [data-row="${r}"][data-col="${c}"]`);
+    if (cel) cel.classList.add('grade-dragover');
+  }
+  const info = document.getElementById('grade-sel-info');
+  if (info) {
+    info.textContent = _gradeSelecao.length > 0
+      ? `${_gradeSelecao.length} cliente(s) selecionado(s) — arraste qualquer célula marcada para mover`
+      : '';
+  }
+}
+
+function _gradeCellClick(rowIdx, colIdx) {
+  if (!_gradeData?.rows[rowIdx]?.cells[colIdx]) return;
+  const idx = _gradeSelecao.findIndex(s => s.rowIdx === rowIdx && s.colIdx === colIdx);
+  if (idx >= 0) {
+    _gradeSelecao.splice(idx, 1);
+  } else {
+    if (_gradeSelecao.length > 0 && _gradeSelecao[0].colIdx !== colIdx) _gradeSelecao = [];
+    _gradeSelecao.push({ rowIdx, colIdx });
+  }
+  _gradeAplicarEstadoVisual();
+}
+
+function _gradeLimparSelecao() {
+  _gradeSelecao = [];
+  _gradeAplicarEstadoVisual();
+}
+
+function _gradeDragStart(e, rowIdx, colIdx) {
+  // NÃO chamar renderGradeInterativa() aqui — destruiria o elemento sendo arrastado
+  const inSel = _gradeSelecao.some(s => s.rowIdx === rowIdx && s.colIdx === colIdx);
+  if (!inSel) _gradeSelecao = [{ rowIdx, colIdx }];
+  const srcColIdx = colIdx;
+  const rowIdxs = _gradeSelecao.filter(s => s.colIdx === srcColIdx).map(s => s.rowIdx).sort((a, b) => a - b);
+  _gradeDragSrc = { colIdx: srcColIdx, rowIdxs };
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', 'grade');
+  // Atualiza visual sem recriar DOM
+  requestAnimationFrame(() => _gradeAplicarEstadoVisual());
+}
+
+function _gradeDragEnd(e) {
+  _gradeDragOverKey = null;
+  _gradeAplicarEstadoVisual();
+}
+
+function _gradeDragOver(e, rowIdx, colIdx) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const key = `${rowIdx}_${colIdx}`;
+  if (_gradeDragOverKey !== key) {
+    _gradeDragOverKey = key;
+    _gradeAplicarEstadoVisual(); // manipulação de DOM, não re-render
+  }
+}
+
+function _gradeDrop(e, targetRowIdx, targetColIdx) {
+  e.preventDefault();
+  _gradeDragOverKey = null;
+  if (!_gradeDragSrc) return;
+  const { colIdx: srcColIdx, rowIdxs: srcRowIdxs } = _gradeDragSrc;
+  const N = srcRowIdxs.length;
+
+  // Coleta todos os movimentos antes de aplicar qualquer um (evita conflitos ao aplicar em sequência)
+  const moves = []; // [{atendIdx, svIdx, newTime, newColab?}]
+
+  if (srcColIdx === targetColIdx) {
+    // Mesma coluna: encontra N linhas destino a partir de targetRowIdx, excluindo as linhas fonte
+    const destRows = [];
+    for (let r = targetRowIdx; r < _gradeData.rows.length && destRows.length < N; r++) {
+      if (!srcRowIdxs.includes(r)) destRows.push(r);
+    }
+    // Se não encontrou linhas suficientes indo pra baixo, busca acima do alvo
+    for (let r = targetRowIdx - 1; r >= 0 && destRows.length < N; r--) {
+      if (!srcRowIdxs.includes(r)) destRows.unshift(r);
+    }
+
+    // Clientes selecionados vão para os destinos
+    srcRowIdxs.forEach((srcRow, i) => {
+      const cell = _gradeData.rows[srcRow]?.cells[srcColIdx];
+      if (cell && i < destRows.length) {
+        moves.push({ atendIdx: cell.atendIdx, svIdx: cell.svIdx, newTime: _gradeData.rows[destRows[i]].timeKey });
+      }
+    });
+    // Clientes deslocados voltam para as posições liberadas pelos selecionados
+    destRows.forEach((destRow, i) => {
+      const cell = _gradeData.rows[destRow]?.cells[srcColIdx];
+      if (cell && i < srcRowIdxs.length) {
+        moves.push({ atendIdx: cell.atendIdx, svIdx: cell.svIdx, newTime: _gradeData.rows[srcRowIdxs[i]].timeKey });
+      }
+    });
+  } else {
+    // Coluna diferente: troca a primeira selecionada com o alvo (muda colaboradora + horário)
+    const srcRow = srcRowIdxs[0];
+    const cell1 = _gradeData.rows[srcRow]?.cells[srcColIdx];
+    const cell2 = _gradeData.rows[targetRowIdx]?.cells[targetColIdx];
+    const time1 = _gradeData.rows[srcRow]?.timeKey;
+    const time2 = _gradeData.rows[targetRowIdx]?.timeKey;
+    if (cell1 && time2) moves.push({ atendIdx: cell1.atendIdx, svIdx: cell1.svIdx, newTime: time2, newColab: _gradeData.colabs[targetColIdx] });
+    if (cell2 && time1) moves.push({ atendIdx: cell2.atendIdx, svIdx: cell2.svIdx, newTime: time1, newColab: _gradeData.colabs[srcColIdx] });
+  }
+
+  // Aplica tudo de uma vez (atômico)
+  moves.forEach(({ atendIdx, svIdx, newTime, newColab }) => {
+    const sv = state.atendimentosEvento[atendIdx].servicos[svIdx];
+    const dur = tempoParaMinutos(sv.hora_fim) - tempoParaMinutos(sv.hora_inicio);
+    sv.hora_inicio = newTime;
+    sv.hora_fim = minutosParaTempo(tempoParaMinutos(newTime) + dur);
+    if (newColab) { sv.colab_id = newColab.id; sv.colab_nome = newColab.nome; }
+  });
+
+  _gradeSelecao = [];
+  _gradeDragSrc = null;
+  _gradeData = buildGradeData();
+  renderGradeInterativa();
+  renderCronograma();
 }
 
 function exportarCronogramaExcel() {
@@ -1873,14 +2249,36 @@ function distribuirAutomatico() {
         const emProgresso = cs.agendados > 0;
         const prontoAgora = cs.livre <= tColab;
         const horaFixaAtivada = cs.atend.hora_fixa && cs.livre <= tColab;
-        const score = (emProgresso && prontoAgora ? 10_000_000 : 0) +
+        const ociosidade = Math.max(0, cs.livre - tColab);
+        // Bônus de "em progresso" só para a collab que já atendeu este cliente.
+        // Outra collab recebe penalidade forte → loop avança e espera a collab certa.
+        const fezAntes = (cs.atend.servicos||[]).some(sv => sv.colab_id === colabId && sv.hora_inicio);
+        // Penaliza sempre que outra collab já iniciou este cliente (fezAntes=false),
+        // mesmo quando o cliente ainda não está pronto (prontoAgora=false)
+        let emProgressoBonus = 0;
+        if (emProgresso) {
+          if (!fezAntes) {
+            emProgressoBonus = -500_000; // outra collab é a responsável — não interferir
+          } else if (prontoAgora) {
+            emProgressoBonus = 10_000_000; // prioridade máxima para continuar com o próprio cliente
+          }
+        }
+        // Balanceamento de carga: penaliza colaboradora com mais serviços já atribuídos,
+        // evitando que uma collab domine enquanto outra fica ociosa
+        const colabLoad = state.atendimentosEvento.reduce((n, a) =>
+          n + (a.servicos||[]).filter(sv => sv.colab_id === colabId && sv.hora_inicio).length, 0);
+        const score = emProgressoBonus +
                       (horaFixaAtivada ? 5_000_000 : 0) +
-                      cs.pendentes.length * 10_000 - inicio;
+                      cs.pendentes.length * 10_000 -
+                      colabLoad * 3_000 -
+                      ociosidade * 500 - inicio;
         if (score > melhorScore) { melhorScore = score; melhor = { csIdx, svIdx, sv, inicio }; }
       });
     });
 
-    if (!melhor) {
+    // Avança o tempo se não há cliente disponível OU se o melhor tem penalidade forte
+    // (penalidade forte = outra collab já iniciou o atendimento e deve completá-lo)
+    if (!melhor || melhorScore < -100_000) {
       let proxLivre = Infinity;
       clState.forEach(cs => cs.pendentes.forEach(sv => {
         if (colabSvs.length === 0 || colabSvs.includes(sv.nome)) {
@@ -1967,7 +2365,7 @@ function renderCronograma() {
       </div>`;
     }).join('')}
     <button class="btn btn-outline btn-sm" style="width:100%;justify-content:center;margin-top:4px;" onclick="abrirLinhaTempo()">📋 Ver cronograma por cliente</button>
-    <button class="btn btn-outline btn-sm" style="width:100%;justify-content:center;margin-top:4px;" onclick="exportarCronogramaExcel()">📊 Baixar Excel (grade por colaboradora)</button>
+    <button class="btn btn-outline btn-sm" style="width:100%;justify-content:center;margin-top:4px;" onclick="abrirGradeInterativa()">📊 Grade interativa (arrastar clientes)</button>
   `;
 }
 
@@ -2116,7 +2514,11 @@ function renderColaboradoras() {
           <div style="font-weight:500;font-size:16px;">${c.nome}</div>
           <div style="font-size:13px;color:var(--texto-sec);">${c.telefone||''} · Comissão padrão: ${c.comissao_padrao||0}%</div>
         </div>
-        <button class="btn btn-outline btn-sm" onclick="editarColaboradora('${c.id}')">Editar</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+          <button class="btn btn-outline btn-sm" onclick="compartilharAgendaColab('${c.id}','${c.nome.replace(/'/g,"\\'")}')">📤 Agenda</button>
+          <button class="btn btn-outline btn-sm" onclick="editarColaboradora('${c.id}')">Editar</button>
+          <button class="btn btn-outline btn-sm" style="color:#dc2626;border-color:#dc2626;" onclick="excluirColaboradora('${c.id}','${c.nome.replace(/'/g,"\\'")}')">Excluir</button>
+        </div>
       </div>
 
       ${c.pix ? `
@@ -2169,6 +2571,22 @@ async function salvarColaboradora() {
   fecharModal('modal-colaboradora');
   renderColaboradoras();
   renderColabSelect();
+}
+
+async function excluirColaboradora(id, nome) {
+  if (!confirm(`Excluir "${nome}"? Isso não afeta eventos já salvos.`)) return;
+  try { await db.collection('colaboradoras').doc(id).delete(); } catch(e) {}
+  state.colaboradoras = state.colaboradoras.filter(c => c.id !== id);
+  renderColaboradoras();
+  renderColabSelect();
+  toast('Colaboradora excluída!');
+}
+
+function compartilharAgendaColab(id, nome) {
+  const url = `${location.origin}${location.pathname}?colab=${id}`;
+  navigator.clipboard.writeText(url)
+    .then(() => toast(`Link de ${nome} copiado! ✓`))
+    .catch(() => toast(`Link: ${url}`));
 }
 
 function copiarPix(chave) {
@@ -2463,6 +2881,13 @@ function toggleServicoSel(nomeServico, checked) {
 
 // ==================== INIT ====================
 document.addEventListener('DOMContentLoaded', () => {
+  // View de colaboradora via link compartilhado (?colab=ID)
+  const colabParam = new URLSearchParams(location.search).get('colab');
+  if (colabParam) {
+    renderViewColab(colabParam);
+    return;
+  }
+
   verificarTokenGoogle();
   carregarDados().then(() => {
     renderCalendario();
@@ -2473,6 +2898,74 @@ document.addEventListener('DOMContentLoaded', () => {
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('aberto'); });
   });
 });
+
+async function renderViewColab(colabId) {
+  // Carrega dados necessários e renderiza view somente-leitura da colaboradora
+  await auth.signInAnonymously();
+  const [colabSnap, eventosSnap] = await Promise.all([
+    db.collection('colaboradoras').doc(colabId).get(),
+    db.collection('eventos').orderBy('data').get()
+  ]);
+  const colab = colabSnap.exists ? { id: colabId, ...colabSnap.data() } : { nome: 'Colaboradora', id: colabId };
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const eventos = eventosSnap.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .filter(ev => {
+      if (!ev.data) return false;
+      const d = new Date(ev.data + 'T00:00:00');
+      const temSlots = (ev.atendimentos||[]).some(a => (a.servicos||[]).some(sv => sv.colab_id === colabId && sv.hora_inicio));
+      return d >= hoje && temSlots;
+    })
+    .sort((a,b) => a.data.localeCompare(b.data));
+
+  document.body.innerHTML = `
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: 'DM Sans', sans-serif; background: #f9f9f9; color: #2c2c2c; }
+      .cv-header { background: #c8697a; color: #fff; padding: 20px 16px 16px; }
+      .cv-nome { font-size: 22px; font-weight: 700; margin-bottom: 2px; }
+      .cv-sub { font-size: 13px; opacity: 0.85; }
+      .cv-body { padding: 16px; max-width: 500px; margin: 0 auto; }
+      .cv-evento { background: #fff; border-radius: 12px; padding: 14px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+      .cv-evento-nome { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+      .cv-evento-data { font-size: 12px; color: #888; margin-bottom: 10px; }
+      .cv-slot { display: flex; gap: 10px; padding: 8px 0; border-top: 1px solid #f0f0f0; align-items: center; }
+      .cv-hora { font-size: 13px; font-weight: 600; color: #c8697a; min-width: 110px; }
+      .cv-info { font-size: 14px; }
+      .cv-servico { font-size: 11px; color: #888; }
+      .cv-vazio { text-align: center; padding: 40px 20px; color: #aaa; font-size: 15px; }
+    </style>
+    <div class="cv-header">
+      <div class="cv-nome">${colab.nome}</div>
+      <div class="cv-sub">Seus próximos atendimentos</div>
+    </div>
+    <div class="cv-body">
+      ${eventos.length === 0
+        ? '<div class="cv-vazio">Nenhum atendimento agendado nos próximos dias.</div>'
+        : eventos.map(ev => {
+          const [ano,mes,dia] = (ev.data||'').split('-');
+          const dataFmt = ev.data ? `${dia}/${mes}/${ano}` : '';
+          const slots = (ev.atendimentos||[])
+            .flatMap(a => (a.servicos||[])
+              .filter(sv => sv.colab_id === colabId && sv.hora_inicio)
+              .map(sv => ({ hora_inicio: sv.hora_inicio, hora_fim: sv.hora_fim, cliente: a.cliente_nome||'—', servico: sv.nome })))
+            .sort((a,b) => a.hora_inicio.localeCompare(b.hora_inicio));
+          return `
+            <div class="cv-evento">
+              <div class="cv-evento-nome">${ev.nome||'Evento'}</div>
+              <div class="cv-evento-data">${dataFmt}${ev.local ? ' · ' + ev.local : ''}</div>
+              ${slots.map(s => `
+                <div class="cv-slot">
+                  <div class="cv-hora">${s.hora_inicio} – ${s.hora_fim}</div>
+                  <div class="cv-info">
+                    <div>${s.cliente}</div>
+                    <div class="cv-servico">${s.servico}</div>
+                  </div>
+                </div>`).join('')}
+            </div>`;
+        }).join('')}
+    </div>`;
+}
 </script>
 </body>
 </html>

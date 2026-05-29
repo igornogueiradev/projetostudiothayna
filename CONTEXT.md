@@ -1,0 +1,139 @@
+# Studio Thayna — Contexto do Projeto
+
+## Visão Geral
+
+PWA (Progressive Web App) de gestão para estúdio de beleza — agendamento, controle de equipe, financeiro e integração com Google Calendar. Aplicação single-page em HTML/CSS/JS puro, sem frameworks, hospedada na Vercel.
+
+**URL de produção:** `https://projetostudiothayna.vercel.app` (via Vercel, roteamento em `vercel.json`)
+**Repositório:** `https://github.com/igornogueiradev/projetostudiothayna`
+
+---
+
+## Arquitetura
+
+| Arquivo | Papel |
+|---|---|
+| `index.html` | Toda a aplicação: HTML + CSS + JS (~2972 linhas) |
+| `studio-thayna.html` | Versão/cópia alternativa do arquivo principal |
+| `logo.png` | Logotipo do estúdio |
+| `vercel.json` | Configuração de deploy (todas as rotas → `index.html`) |
+| `.vercel/project.json` | IDs do projeto Vercel (`prj_WHKUb9EWrvaL5dvXE9A600Fv2Ht6`) |
+
+### Backend / Serviços externos
+
+- **Firebase Firestore** — banco de dados principal (coleções: `eventos`, `clientes`, `colaboradoras`, `servicos`, `pagamentos_confirmados`)
+- **Firebase Auth** — autenticação anônima (sem login do usuário)
+- **Google Calendar API** — integração bidirecional via OAuth2 implicit flow
+- **Fontes:** Google Fonts (Playfair Display + DM Sans)
+
+### Configurações Firebase (já no código)
+```
+projectId: studio-thayna
+authDomain: studio-thayna.firebaseapp.com
+appId: 1:219805696286:web:be3c087a77269ca94a490f
+```
+
+### Google OAuth
+```
+CLIENT_ID: 1054000419123-63epgfgkac3an09skhiq7tpf3861me4n
+API_KEY: AIzaSyDzF35wR7guepU4CtsMLL9WS4BdhHsSzbA
+SCOPE: https://www.googleapis.com/auth/calendar
+```
+Token armazenado em `localStorage` com TTL; fluxo implicit grant (redirect + hash).
+
+---
+
+## Telas e Funcionalidades
+
+### 1. Agenda (`#tela-agenda`)
+- Calendário mensal com navegação por mês
+- Dias com eventos marcados com ponto indicador
+- Ao clicar em um dia: lista de eventos do dia + botão "novo evento"
+- Sincronização com Google Calendar (todos os calendários da conta)
+
+### 2. Eventos (`#tela-eventos`)
+- Lista de todos os eventos com filtro por status (todos / pendente / confirmado / concluído)
+- Card com nome, data, hora, local, badge de status, contagem de atendimentos, valor recebido/total
+- Modal de detalhe: resumo financeiro, status editável, lista de atendimentos com pagamentos
+- Criação/edição via modal com campos: nome, data, hora, local, colaboradoras, clientes, cronograma, deslocamento
+
+### 3. Equipe (`#tela-colaboradoras`)
+- **Aba Colaboradoras:** cadastro com nome, telefone, comissão padrão (%), chave PIX
+- **Aba Serviços:** cadastro de serviços disponíveis (nome)
+- FAB (+) cria colaboradora ou serviço conforme aba ativa
+
+### 4. Financeiro (`#tela-financeiro`)
+- Filtro por mês (seletor)
+- Cards de resumo: total recebido, saldo líquido, comissões, a receber
+- Lista de comissões a pagar / pagas com chave PIX para copiar
+- Histórico por colaboradora (barras)
+- Distribuição por forma de pagamento (PIX, crédito, débito, dinheiro, transferência)
+
+---
+
+## Modais
+
+| ID | Função |
+|---|---|
+| `modal-evento` | Criar/editar evento |
+| `modal-detalhe-evento` | Visualizar detalhes do evento |
+| `modal-cliente` | Cadastrar cliente |
+| `modal-colaboradora` | Cadastrar/editar colaboradora |
+| `modal-servico` | Cadastrar/editar serviço |
+| `modal-sel-servicos` | Selecionar serviços de um atendimento |
+| `modal-pagamento` | Registrar pagamento (sinal / restante / total) |
+| `modal-slot-cronograma` | Editar slot individual do cronograma |
+| `modal-linha-tempo` | Cronograma por cliente (linha do tempo) |
+| `modal-grade-interativa` | Grade interativa drag-and-drop; exporta para Excel |
+
+---
+
+## Estado Global (`state`)
+
+```js
+state = {
+  telaAtual, mesAtual, diaSelecionado,
+  googleToken,
+  colabsEvento, atendimentosEvento, duracaoServicosEvento, duplasEvento,
+  eventoEditandoId, colabEditandoId, selServicosAtendIdx, eventoDetalheId,
+  clientes, colaboradoras, eventos, servicos,
+  pagamentosConfirmados, googleIdsNoSupabase,
+  _equipeAba
+}
+```
+
+---
+
+## Funcionalidades Especiais
+
+- **Importação via WhatsApp:** colar lista de clientes no formato `Nome - Serviço - Horário` para criar atendimentos em lote
+- **Distribuição automática:** `distribuirAutomatico()` distribui clientes entre colaboradoras automaticamente
+- **Grade interativa:** visualização drag-and-drop com seleção múltipla por coluna; exporta para Excel via SheetJS
+- **Cronograma por cliente:** linha do tempo visual por colaboradora
+- **Deslocamento:** campo opcional por evento, receita sem comissão
+- **Duplas:** suporte a pares de colaboradoras para um mesmo atendimento
+
+---
+
+## Design System
+
+| Variável CSS | Valor |
+|---|---|
+| `--rosa` | `#c8697a` |
+| `--rosa-dark` | `#a04f5e` |
+| `--rosa-light` | `#f7e8eb` |
+| `--dourado` | `#c9a96e` |
+| `--verde` | `#4a9e7c` |
+| `--cinza` | `#6b6b6b` |
+| `--radius` | `12px` |
+| `--sombra` | `0 2px 12px rgba(0,0,0,0.08)` |
+
+Fontes: `Playfair Display` (títulos/logo) + `DM Sans` (corpo).
+Layout mobile-first, max-width 480px, nav fixa no fundo.
+
+---
+
+## Changelog
+
+### 2026-05-29
+- Criação do arquivo `CONTEXT.md` com documentação completa do projeto
