@@ -4,8 +4,10 @@
 
 PWA (Progressive Web App) de gestão para estúdio de beleza — agendamento, controle de equipe, financeiro e integração com Google Calendar. Aplicação single-page em HTML/CSS/JS puro, sem frameworks, hospedada na Vercel.
 
-**URL de produção:** `https://projetostudiothayna.vercel.app` (via Vercel, roteamento em `vercel.json`)
+**URL de produção:** `https://projetostudiothayna.vercel.app`
 **Repositório:** `https://github.com/igornogueiradev/projetostudiothayna`
+
+> **Deploy:** o GitHub integration do Vercel não detecta commits automaticamente — sempre usar `vercel --prod --yes` após `git push origin main`.
 
 ---
 
