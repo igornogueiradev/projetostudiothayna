@@ -151,3 +151,4 @@ Layout mobile-first, max-width 480px, nav fixa no fundo.
   - **Hora_fixa**: respeitada no agendamento; clientes sem hora_fixa preenchem lacunas quando cabem inteiros antes do próximo horário fixo
   - **Detecção automática**: não depende de "sem restrição" — funciona com qualquer combinação de serviços por collab configurada nos checkboxes do evento
   - **Duplas**: pré-passo mantido; contagem de serviços já atribuídos pelas duplas é considerada no balanço dos demais clientes
+- **Fix 3:** corrige caso simétrico (múltiplas collabs com mesma capacidade). Quando `colabsCompletas.length >= 2` (ex: DANI=MAKE+CABELO e PAULA=MAKE+CABELO), força "manter junto" sem comparar com dividir — a simulação de "dividir" produzia imbalance=0 no início e sempre vencia, dividindo clientes incorretamente entre collabs de mesma capacidade

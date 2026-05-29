@@ -2285,7 +2285,11 @@ function distribuirAutomatico() {
     const splitVals = Object.values(splitSim);
     const splitImbalance = Math.max(...splitVals) - Math.min(...splitVals);
 
-    if (togetherCollab && togetherImbalance <= splitImbalance) {
+    // Múltiplas collabs conseguem atender o cliente completo → forçar manter junto
+    // (ex: DANI=MAKE+CABELO e PAULA=MAKE+CABELO: cliente não é dividido entre elas)
+    // Só considera dividir quando há no máximo 1 collab completa (caso assimétrico)
+    const forcarJunto = colabsCompletas.length >= 2;
+    if (togetherCollab && (forcarJunto || togetherImbalance <= splitImbalance)) {
       // Manter junto: todos os serviços com a mesma collab
       cs.pendentes.forEach(sv => { sv._collab = togetherCollab.id; });
       colabServiceCount[togetherCollab.id] = (colabServiceCount[togetherCollab.id] || 0) + cs.pendentes.length;
